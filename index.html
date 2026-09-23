@@ -767,7 +767,7 @@
           <div class="form-group full">
             <label for="emailDestino">Correo electrónico de destino del informe <span class="req">*</span></label>
             <input type="email" id="emailDestino" name="emailDestino" required autocomplete="email" placeholder="responsable.prl@empresa.es" />
-            <span class="field-hint" style="font-size:0.8rem;color:var(--gray-500);margin-top:0.15rem">Se abrirá la aplicación de correo del dispositivo para enviar el informe a esta dirección.</span>
+            <span class="field-hint" style="font-size:0.8rem;color:var(--gray-500);margin-top:0.15rem">Se abrirá la aplicación de correo del dispositivo; adjunte el PDF descargado al mensaje.</span>
             <span class="field-error" id="err-emailDestino">Indique un correo electrónico válido de destino.</span>
           </div>
         </div>
@@ -804,14 +804,15 @@
       <section class="card" id="sec-envio">
         <h2><span class="section-num">✉</span> Envío del informe</h2>
         <p style="margin:0 0 1rem;font-size:0.9rem;color:var(--gray-500)">
-          Al pulsar <strong>Enviar informe</strong> se descargará una copia HTML del informe y se abrirá la aplicación de correo del dispositivo con el destinatario, el asunto y el cuerpo preparados. Debe pulsar <strong>Enviar</strong> en esa aplicación para remitirlo.
-          Si ha añadido una foto, está incluida en el HTML descargado (adjúntelo al correo si desea que llegue con la imagen).
+          Al pulsar <strong>Enviar informe</strong> se generará y descargará un <strong>PDF</strong> del informe y se abrirá la aplicación de correo del dispositivo con el destinatario, el asunto y un resumen. Debe <strong>adjuntar el PDF descargado</strong> al mensaje y pulsar <strong>Enviar</strong> en esa aplicación.
+          Si ha añadido una foto, está incluida en el PDF. En móviles compatibles también podrá compartir el PDF con otras apps.
+          La generación del PDF necesita conexión a Internet (biblioteca desde CDN); use la app en HTTPS (p. ej. Render) o con red disponible.
         </p>
         <div class="actions">
           <button type="submit" class="btn btn-primary" id="btnEnviar">
             <span id="btnEnviarText">Enviar informe</span>
           </button>
-          <button type="button" class="btn btn-secondary" id="btnDescargar">Descargar informe (HTML)</button>
+          <button type="button" class="btn btn-secondary" id="btnDescargar">Descargar informe (PDF)</button>
           <button type="button" class="btn btn-ghost" id="btnReset" style="display:none">Nueva revisión</button>
         </div>
         <div class="status-msg" id="statusMsg" role="status"></div>
@@ -824,6 +825,8 @@
     Referencias: RD 2177/2004 · UNE-EN 131 · buenas prácticas INSST / AFESPO
   </footer>
 
+  <!-- html2pdf.js (html2canvas + jsPDF). Requiere red/HTTPS; en file:// el CDN puede fallar. -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js" integrity="sha512-GsLlZN/3F2ErC5ifS5QtgpiJtWd43JWSuIgh7mbzZ8zBps+dvLusV+eNQATqgA/HdeKFVgA5v3S/cIrLF7QnIg==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
   <script>
 (function () {
   "use strict";
@@ -1173,6 +1176,63 @@
     return firstError;
   }
 
+  let logoDataUrl = null;
+  let logoLoadPromise = null;
+
+  function ensureLogoDataUrl() {
+    if (logoDataUrl) return Promise.resolve(logoDataUrl);
+    if (logoLoadPromise) return logoLoadPromise;
+    logoLoadPromise = new Promise(function (resolve) {
+      function finish(url) {
+        logoDataUrl = url || null;
+        resolve(logoDataUrl);
+      }
+      // Prefer fetch → blob → data URL (works on HTTPS / same-origin).
+      if (typeof fetch === "function") {
+        fetch("logo-previjob.png")
+          .then(function (r) {
+            if (!r.ok) throw new Error("logo http " + r.status);
+            return r.blob();
+          })
+          .then(function (blob) {
+            var reader = new FileReader();
+            reader.onload = function () { finish(String(reader.result)); };
+            reader.onerror = function () { finish(null); };
+            reader.readAsDataURL(blob);
+          })
+          .catch(function () {
+            // Fallback: Image + canvas (may fail on tainted canvas / file://)
+            var img = new Image();
+            img.onload = function () {
+              try {
+                var c = document.createElement("canvas");
+                c.width = img.naturalWidth || img.width;
+                c.height = img.naturalHeight || img.height;
+                var ctx = c.getContext("2d");
+                ctx.drawImage(img, 0, 0);
+                finish(c.toDataURL("image/png"));
+              } catch (_) {
+                finish(null);
+              }
+            };
+            img.onerror = function () { finish(null); };
+            img.src = "logo-previjob.png";
+          });
+      } else {
+        finish(null);
+      }
+    });
+    return logoLoadPromise;
+  }
+
+  // Kick off logo preload early
+  ensureLogoDataUrl();
+
+  function reportFilename(data) {
+    var safeId = (data.idEscalera || "escalera").replace(/[^\w\-áéíóúñÁÉÍÓÚÑ]+/gi, "_").slice(0, 40);
+    return "informe-escalera-" + safeId + "-" + (data.fecha || "sin-fecha") + ".pdf";
+  }
+
   function buildEmailHtml(data) {
     const rows = data.answers.map(a => {
       const color = a.answer === "conforme" ? "#4f8f25"
@@ -1187,14 +1247,18 @@
       </tr>${obsRow}`;
     }).join("");
 
-    const resColor = data.resultado === "APTO" ? "#4f8f25" : "#b91c1c";
-    const resBg = data.resultado === "APTO" ? "#e8f5e0" : "#fee2e2";
-    const resText = data.resultado === "APTO" ? "APTO PARA EL USO" : "NO APTO / RETIRAR DE USO";
+    const resColor = data.resultado === "APTO" ? "#4f8f25" : data.resultado === "PENDIENTE" ? "#b45309" : "#b91c1c";
+    const resBg = data.resultado === "APTO" ? "#e8f5e0" : data.resultado === "PENDIENTE" ? "#fef3c7" : "#fee2e2";
+    const resText = data.resultado === "APTO" ? "APTO PARA EL USO"
+      : data.resultado === "PENDIENTE" ? "PENDIENTE (checklist incompleto)"
+      : "NO APTO / RETIRAR DE USO";
+
+    const logoSrc = logoDataUrl || "logo-previjob.png";
 
     return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe revisión escalera</title></head>
-<body style="font-family:Segoe UI,Arial,sans-serif;color:#1a1d23;max-width:720px;margin:0 auto;padding:16px;background:#f1fbfd">
+<body style="font-family:Segoe UI,Arial,sans-serif;color:#1a1d23;max-width:720px;margin:0 auto;padding:16px;background:#ffffff">
   <div style="background:#0d0d0d;color:#fff;padding:14px 20px 16px;border-bottom:3px solid #7ac143;border-radius:8px 8px 0 0">
-    <img src="logo-previjob.png" alt="PREVIJOB — Servicio de prevención" style="display:block;max-height:42px;width:auto;object-fit:contain;margin:0 0 10px">
+    <img src="${logoSrc}" alt="PREVIJOB — Servicio de prevención" style="display:block;max-height:42px;width:auto;object-fit:contain;margin:0 0 10px">
     <h1 style="margin:0;font-size:20px">Revisión de escaleras manuales</h1>
     <p style="margin:4px 0 0;font-size:13px;opacity:0.9">RD 2177/2004 · Informe de inspección</p>
   </div>
@@ -1205,12 +1269,13 @@
       <tr><td style="padding:6px 0;color:#6b7280">Identificación escalera</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.idEscalera)}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Tipo</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.tipo)}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Ubicación / centro</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.ubicacion || "—")}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Email destino</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.emailDestino || "—")}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Generado</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.timestampLocal)} (Europe/Madrid)</td></tr>
     </table>
     <div style="background:${resBg};color:${resColor};border:2px solid ${resColor};padding:12px;text-align:center;font-weight:800;font-size:18px;border-radius:8px;margin-bottom:16px">
       ${resText}
     </div>
-    ${data.resultado !== "APTO" ? `<p style="font-size:14px;color:#b91c1c"><strong>Retirada / señalización:</strong> ${data.retirada ? "Sí, confirmada" : "No confirmada"}</p>` : ""}
+    ${data.resultado !== "APTO" && data.resultado !== "PENDIENTE" ? `<p style="font-size:14px;color:#b91c1c"><strong>Retirada / señalización:</strong> ${data.retirada ? "Sí, confirmada" : "No confirmada"}</p>` : ""}
     ${data.fotoDataUrl ? `<div style="margin:16px 0;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb">
       <h2 style="font-size:16px;color:#247d9d;margin:0 0 8px">Foto de la escalera</h2>
       <img src="${data.fotoDataUrl}" alt="Foto de la escalera ${escapeHtml(data.idEscalera)}" style="display:block;max-width:100%;height:auto;border-radius:6px;border:1px solid #e5e7eb" />
@@ -1221,7 +1286,8 @@
     ${data.obsGenerales ? `<h2 style="font-size:16px;color:#247d9d;margin-top:20px">Observaciones generales</h2><p style="font-size:14px;white-space:pre-wrap">${escapeHtml(data.obsGenerales)}</p>` : ""}
     <p style="margin-top:24px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:12px">
       Documento de control interno. No sustituye las instrucciones del fabricante.<br>
-      Referencias: RD 2177/2004 · UNE-EN 131 · INSST / AFESPO
+      Referencias: RD 2177/2004 · UNE-EN 131 · INSST / AFESPO<br>
+      Generado: ${escapeHtml(data.timestampLocal)} (Europe/Madrid)
     </p>
   </div>
 </body></html>`;
@@ -1233,35 +1299,6 @@
       .replace(/</g, "&lt;")
       .replace(/>/g, "&gt;")
       .replace(/"/g, "&quot;");
-  }
-
-  function buildPlainSummary(data) {
-    const lines = [
-      "REVISIÓN DE ESCALERAS MANUALES",
-      "Resultado: " + (data.resultado === "APTO" ? "APTO PARA EL USO" : "NO APTO / RETIRAR DE USO"),
-      "Revisor/a: " + data.revisor,
-      "Fecha: " + data.fecha,
-      "Escalera: " + data.idEscalera,
-      "Tipo: " + data.tipo,
-      "Ubicación: " + (data.ubicacion || "—"),
-      "Generado: " + data.timestampLocal,
-      ""
-    ];
-    if (data.fotoDataUrl) {
-      lines.push("Foto: incluida en el informe HTML descargado", "");
-    }
-    if (data.resultado !== "APTO") {
-      lines.push("Retirada/señalización: " + (data.retirada ? "Sí" : "No"), "");
-    }
-    lines.push("CHECKLIST:");
-    data.answers.forEach(a => {
-      lines.push(`${a.id} [${a.answerLabel}] ${a.text}`);
-      if (a.obs) lines.push("   Obs.: " + a.obs);
-    });
-    if (data.obsGenerales) {
-      lines.push("", "Observaciones generales:", data.obsGenerales);
-    }
-    return lines.join("\n");
   }
 
   function countAnswers(data) {
@@ -1277,6 +1314,7 @@
 
   function buildMailtoShortBody(data) {
     const c = countAnswers(data);
+    const filename = reportFilename(data);
     const lines = [
       "REVISIÓN DE ESCALERAS MANUALES (resumen)",
       "Resultado: " + (data.resultado === "APTO" ? "APTO PARA EL USO" : "NO APTO / RETIRAR DE USO"),
@@ -1285,6 +1323,7 @@
       "Escalera: " + data.idEscalera,
       "Tipo: " + data.tipo,
       "Ubicación: " + (data.ubicacion || "—"),
+      "Generado: " + data.timestampLocal,
       "",
       "Conteo checklist: " + c.conforme + " conforme, " +
         (c.noConforme + c.clear) + " no conforme/clear, " + c.na + " N/A (total " + data.answers.length + ").",
@@ -1297,31 +1336,26 @@
       lines.push("Retirada/señalización: " + (data.retirada ? "Sí" : "No"), "");
     }
     if (data.fotoDataUrl) {
-      lines.push("Foto: incluida en el informe HTML descargado", "");
+      lines.push("Foto: incluida en el PDF descargado.", "");
     }
     lines.push(
-      "El detalle completo del checklist está en el archivo HTML descargado.",
-      "Adjunte ese archivo a este correo si el cuerpo se ha truncado."
+      "IMPORTANTE: Adjuntar el archivo PDF descargado a este correo:",
+      filename,
+      "",
+      "mailto: no puede adjuntar archivos automáticamente. El informe completo (checklist, resultado" +
+        (data.fotoDataUrl ? " y foto" : "") + ") está en ese PDF."
     );
     return lines.join("\n");
   }
 
-  const MAILTO_BODY_LIMIT = 1800;
-
   function openMailto(data) {
     const subject = "Informe revisión escalera " + data.idEscalera + " — " +
       (data.resultado === "APTO" ? "APTO" : "NO APTO");
-    let body = buildPlainSummary(data);
-    let truncated = false;
-    if (body.length > MAILTO_BODY_LIMIT) {
-      body = buildMailtoShortBody(data);
-      truncated = true;
-    }
+    const body = buildMailtoShortBody(data);
     const href = "mailto:" + data.emailDestino +
       "?subject=" + encodeURIComponent(subject) +
       "&body=" + encodeURIComponent(body);
 
-    // Prefer location.href for better mobile mail-app handoff; fall back to <a> click.
     try {
       window.location.href = href;
     } catch (_) {
@@ -1332,21 +1366,145 @@
       a.click();
       a.remove();
     }
-    return { truncated, bodyLength: body.length };
+    return { bodyLength: body.length };
   }
 
-  function downloadReport(data) {
-    const html = buildEmailHtml(data);
-    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+  function downloadBlob(blob, filename) {
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
-    const safeId = (data.idEscalera || "escalera").replace(/[^\w\-áéíóúñÁÉÍÓÚÑ]+/gi, "_").slice(0, 40);
     a.href = url;
-    a.download = `informe-escalera-${safeId}-${data.fecha || "sin-fecha"}.html`;
+    a.download = filename;
     document.body.appendChild(a);
     a.click();
     a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+  }
+
+  function canSharePdfFile(file) {
+    try {
+      return !!(navigator.canShare && navigator.canShare({ files: [file] }));
+    } catch (_) {
+      return false;
+    }
+  }
+
+  function trySharePdf(blob, filename) {
+    if (!navigator.share) return Promise.resolve(false);
+    var file;
+    try {
+      file = new File([blob], filename, { type: "application/pdf" });
+    } catch (_) {
+      return Promise.resolve(false);
+    }
+    if (!canSharePdfFile(file)) return Promise.resolve(false);
+    return navigator.share({
+      files: [file],
+      title: "Informe revisión escalera",
+      text: "Informe PDF de revisión de escalera — " + filename
+    }).then(function () {
+      return true;
+    }).catch(function (err) {
+      if (err && err.name === "AbortError") return false;
+      return false;
+    });
+  }
+
+  function waitForImages(root) {
+    var imgs = Array.prototype.slice.call(root.querySelectorAll("img"));
+    if (!imgs.length) return Promise.resolve();
+    return Promise.all(imgs.map(function (img) {
+      if (img.complete && img.naturalWidth) return Promise.resolve();
+      return new Promise(function (resolve) {
+        var done = function () { resolve(); };
+        img.addEventListener("load", done, { once: true });
+        img.addEventListener("error", done, { once: true });
+        // Force decode when possible
+        if (typeof img.decode === "function") {
+          img.decode().then(done).catch(done);
+        }
+      });
+    }));
+  }
+
+  function generatePdfBlob(data) {
+    if (typeof html2pdf === "undefined") {
+      return Promise.reject(new Error(
+        "No se pudo cargar la biblioteca PDF (html2pdf.js). Abra la app por HTTPS (p. ej. Render) con conexión a Internet; en file:// el CDN suele estar bloqueado."
+      ));
+    }
+    return ensureLogoDataUrl().then(function () {
+      var full = buildEmailHtml(data);
+      // Extract body content — nested <html>/<body> breaks html2canvas capture.
+      var bodyMatch = full.match(/<body[^>]*>([\s\S]*)<\/body>/i);
+      var inner = bodyMatch ? bodyMatch[1] : full;
+
+      var host = document.createElement("div");
+      host.id = "pdf-render-host";
+      host.setAttribute("aria-hidden", "true");
+      // Keep in viewport (off-screen left:-9999 often yields blank PDFs with html2canvas).
+      host.style.cssText = [
+        "position:fixed",
+        "left:0",
+        "top:0",
+        "width:794px",
+        "max-width:100%",
+        "margin:0",
+        "padding:0",
+        "background:#ffffff",
+        "z-index:2147483000",
+        "opacity:0.01",
+        "pointer-events:none",
+        "overflow:visible"
+      ].join(";");
+
+      var container = document.createElement("div");
+      container.style.cssText = "width:720px;max-width:100%;margin:0 auto;padding:8px;background:#ffffff;box-sizing:border-box;";
+      container.innerHTML = inner;
+      host.appendChild(container);
+      document.body.appendChild(host);
+
+      var opt = {
+        margin: [10, 10, 12, 10],
+        filename: reportFilename(data),
+        image: { type: "jpeg", quality: 0.95 },
+        html2canvas: {
+          scale: 2,
+          useCORS: true,
+          allowTaint: true,
+          logging: false,
+          backgroundColor: "#ffffff",
+          scrollX: 0,
+          scrollY: 0,
+          windowWidth: 794
+        },
+        jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+        pagebreak: { mode: ["css", "legacy"] }
+      };
+
+      return waitForImages(container).then(function () {
+        // Brief paint so layout/fonts settle
+        return new Promise(function (r) { requestAnimationFrame(function () { setTimeout(r, 50); }); });
+      }).then(function () {
+        return html2pdf().set(opt).from(container).outputPdf("blob");
+      }).then(function (blob) {
+        host.remove();
+        if (!blob || blob.size < 1000) {
+          throw new Error("El PDF generado parece vacío. Intente de nuevo o use HTTPS (Render).");
+        }
+        return blob;
+      }).catch(function (err) {
+        if (host.parentNode) host.remove();
+        throw err;
+      });
+    });
+  }
+
+  function downloadReportPdf(data) {
+    return generatePdfBlob(data).then(function (blob) {
+      const filename = reportFilename(data);
+      downloadBlob(blob, filename);
+      return { blob: blob, filename: filename };
+    });
   }
 
   function showStatus(type, html) {
@@ -1359,8 +1517,9 @@
     const btn = document.getElementById("btnEnviar");
     const txt = document.getElementById("btnEnviarText");
     btn.disabled = busy;
+    document.getElementById("btnDescargar").disabled = busy;
     txt.innerHTML = busy
-      ? '<span class="spinner" aria-hidden="true"></span> Preparando…'
+      ? '<span class="spinner" aria-hidden="true"></span> Generando PDF…'
       : "Enviar informe";
   }
 
@@ -1386,33 +1545,40 @@
     }
 
     setSending(true);
+    showStatus("info", "Generando informe PDF…");
 
-    // Always download full HTML copy first (offline-safe), then open mail app.
-    downloadReport(data);
-    const mail = openMailto(data);
-
-    let msg =
-      "<strong>Se ha abierto la aplicación de correo</strong> con destino " +
-      escapeHtml(data.emailDestino) + ".<br>" +
-      "Pulse <strong>Enviar</strong> en esa aplicación para remitir el informe.<br>" +
-      "También se ha descargado el informe HTML completo; puede adjuntarlo al correo si lo necesita.";
-    if (data.fotoDataUrl) {
-      msg +=
-        "<br><br><strong>Foto:</strong> la imagen de la escalera está en el informe HTML descargado. " +
-        "Adjunte ese archivo en la aplicación de correo si desea que la foto llegue al destinatario.";
-    }
-    if (mail.truncated) {
-      msg +=
-        "<br><br><strong>Nota:</strong> el cuerpo del correo es un resumen porque el detalle es muy largo. " +
-        "Adjunte el archivo HTML descargado para enviar el checklist completo.";
-    }
-    showStatus("info", msg);
-    document.getElementById("btnReset").style.display = "inline-flex";
-    setSending(false);
+    downloadReportPdf(data).then(function (res) {
+      return trySharePdf(res.blob, res.filename).then(function (shared) {
+        openMailto(data);
+        let msg =
+          "<strong>PDF descargado:</strong> " + escapeHtml(res.filename) + ".<br>" +
+          "<strong>Se ha abierto la aplicación de correo</strong> con destino " +
+          escapeHtml(data.emailDestino) + ".<br>" +
+          "Adjunte el PDF descargado al mensaje y pulse <strong>Enviar</strong> en esa aplicación." +
+          " <em>mailto:</em> no puede adjuntar archivos automáticamente.";
+        if (data.fotoDataUrl) {
+          msg += "<br><br><strong>Foto:</strong> incluida en el PDF.";
+        }
+        if (shared) {
+          msg += "<br><br>También se ha ofrecido compartir el PDF con otras aplicaciones del dispositivo.";
+        } else if (navigator.canShare) {
+          msg += "<br><br>En este dispositivo puede compartir el PDF desde la carpeta de descargas si lo necesita.";
+        }
+        showStatus("info", msg);
+        document.getElementById("btnReset").style.display = "inline-flex";
+      });
+    }).catch(function (err) {
+      showStatus(
+        "error",
+        escapeHtml(err && err.message ? err.message : "No se pudo generar el PDF.") +
+          "<br>Compruebe la conexión e intente de nuevo desde HTTPS (Render) o con red disponible."
+      );
+    }).then(function () {
+      setSending(false);
+    });
   });
 
   document.getElementById("btnDescargar").addEventListener("click", function () {
-    // Soft validation: allow download even if incomplete, but warn
     const data = collectData();
     if (data.answers.some(a => a.answer === "no_conforme" || a.answer === "clear")) {
       data.resultado = "NO APTO";
@@ -1421,12 +1587,29 @@
     } else {
       data.resultado = "PENDIENTE";
     }
-    downloadReport(data);
-    let dlMsg = "Informe HTML descargado en su dispositivo.";
-    if (data.fotoDataUrl) {
-      dlMsg += " La foto de la escalera está incluida en ese archivo.";
-    }
-    showStatus("info", dlMsg);
+
+    setSending(true);
+    showStatus("info", "Generando informe PDF…");
+    downloadReportPdf(data).then(function (res) {
+      return trySharePdf(res.blob, res.filename).then(function (shared) {
+        let dlMsg = "Informe PDF descargado: <strong>" + escapeHtml(res.filename) + "</strong>.";
+        if (data.fotoDataUrl) {
+          dlMsg += " La foto de la escalera está incluida.";
+        }
+        if (shared) {
+          dlMsg += " También se ha ofrecido compartir el archivo.";
+        }
+        showStatus("info", dlMsg);
+      });
+    }).catch(function (err) {
+      showStatus(
+        "error",
+        escapeHtml(err && err.message ? err.message : "No se pudo generar el PDF.") +
+          "<br>Compruebe la conexión e intente de nuevo desde HTTPS (Render) o con red disponible."
+      );
+    }).then(function () {
+      setSending(false);
+    });
   });
 
   document.getElementById("btnReset").addEventListener("click", function () {
@@ -1538,9 +1721,9 @@
       fotoDataUrl = res.dataUrl;
       showFotoPreview(
         res.dataUrl,
-        "Vista previa (" + res.width + "×" + res.height + " px, ~" + res.approxKB + " KB). Se incluirá en el informe HTML."
+        "Vista previa (" + res.width + "×" + res.height + " px, ~" + res.approxKB + " KB). Se incluirá en el informe PDF."
       );
-      showStatus("info", "Foto de la escalera añadida (opcional). Estará en el informe HTML descargado.");
+      showStatus("info", "Foto de la escalera añadida (opcional). Estará en el informe PDF descargado.");
     }).catch(function () {
       clearFoto();
       showStatus("error", "No se pudo procesar la imagen. Pruebe con otra foto.");
