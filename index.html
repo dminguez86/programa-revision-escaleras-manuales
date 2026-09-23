@@ -425,6 +425,52 @@
       font-weight: 600;
     }
 
+    /* Foto de la escalera */
+    .foto-box {
+      border: 1px dashed var(--gray-300);
+      border-radius: var(--radius);
+      padding: 0.85rem 1rem;
+      background: var(--gray-50);
+    }
+    .foto-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.6rem;
+      align-items: center;
+      margin-top: 0.5rem;
+    }
+    .foto-controls input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      padding: 0;
+      margin: -1px;
+      overflow: hidden;
+      clip: rect(0,0,0,0);
+      border: 0;
+    }
+    .foto-preview-wrap {
+      display: none;
+      margin-top: 0.75rem;
+    }
+    .foto-preview-wrap.visible { display: block; }
+    .foto-preview-wrap img {
+      display: block;
+      max-width: 100%;
+      max-height: 280px;
+      width: auto;
+      height: auto;
+      border-radius: 8px;
+      border: 1px solid var(--gray-200);
+      object-fit: contain;
+      background: var(--white);
+    }
+    .foto-preview-meta {
+      font-size: 0.8rem;
+      color: var(--gray-500);
+      margin-top: 0.35rem;
+    }
+
     .retirada-box input[type="checkbox"] {
       width: 1.35rem;
       height: 1.35rem;
@@ -673,8 +719,26 @@
             <input type="text" id="ubicacion" name="ubicacion" placeholder="Centro, nave, zona…" />
           </div>
           <div class="form-group full">
+            <label for="fotoEscalera">Foto de la escalera <span class="hint">(opcional)</span></label>
+            <div class="foto-box">
+              <p class="field-hint" style="margin:0;font-size:0.8rem;color:var(--gray-500)">Opcional. En el móvil puede usar la cámara.</p>
+              <div class="foto-controls">
+                <label for="fotoEscalera" class="btn btn-secondary" id="fotoEscaleraLabel" style="cursor:pointer;margin:0">
+                  Tomar o elegir foto
+                </label>
+                <input type="file" id="fotoEscalera" name="fotoEscalera" accept="image/*" capture="environment" />
+                <button type="button" class="btn btn-ghost" id="btnQuitarFoto" style="display:none">Quitar foto</button>
+              </div>
+              <div class="foto-preview-wrap" id="fotoPreviewWrap" aria-live="polite">
+                <img id="fotoPreview" alt="Vista previa de la foto de la escalera" />
+                <p class="foto-preview-meta" id="fotoPreviewMeta"></p>
+              </div>
+            </div>
+          </div>
+          <div class="form-group full">
             <label for="emailDestino">Correo electrónico de destino del informe <span class="req">*</span></label>
             <input type="email" id="emailDestino" name="emailDestino" required autocomplete="email" placeholder="responsable.prl@empresa.es" />
+            <span class="field-hint" style="font-size:0.8rem;color:var(--gray-500);margin-top:0.15rem">Se abrirá la aplicación de correo del dispositivo para enviar el informe a esta dirección.</span>
             <span class="field-error" id="err-emailDestino">Indique un correo electrónico válido de destino.</span>
           </div>
         </div>
@@ -711,7 +775,8 @@
       <section class="card" id="sec-envio">
         <h2><span class="section-num">✉</span> Envío del informe</h2>
         <p style="margin:0 0 1rem;font-size:0.9rem;color:var(--gray-500)">
-          Al enviar, el informe se remite automáticamente al correo indicado. La primera vez que se use una dirección nueva, FormSubmit puede exigir una confirmación del destinatario.
+          Al pulsar <strong>Enviar informe</strong> se descargará una copia HTML del informe y se abrirá la aplicación de correo del dispositivo con el destinatario, el asunto y el cuerpo preparados. Debe pulsar <strong>Enviar</strong> en esa aplicación para remitirlo.
+          Si ha añadido una foto, está incluida en el HTML descargado (adjúntelo al correo si desea que llegue con la imagen).
         </p>
         <div class="actions">
           <button type="submit" class="btn btn-primary" id="btnEnviar">
@@ -733,6 +798,10 @@
   <script>
 (function () {
   "use strict";
+
+  /** @type {string|null} compressed JPEG data URL of ladder photo */
+  let fotoDataUrl = null;
+
 
   const SECTIONS = [
     {
@@ -1011,6 +1080,7 @@
       resultado: finalResultado,
       retirada: document.getElementById("retiradaConfirm").checked,
       answers,
+      fotoDataUrl: fotoDataUrl || null,
       timestamp: new Date().toISOString(),
       timestampLocal: new Date().toLocaleString("es-ES", { timeZone: "Europe/Madrid" })
     };
@@ -1111,6 +1181,11 @@
       ${resText}
     </div>
     ${data.resultado !== "APTO" ? `<p style="font-size:14px;color:#b91c1c"><strong>Retirada / señalización:</strong> ${data.retirada ? "Sí, confirmada" : "No confirmada"}</p>` : ""}
+    ${data.fotoDataUrl ? `<div style="margin:16px 0;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb">
+      <h2 style="font-size:16px;color:#1e3a5f;margin:0 0 8px">Foto de la escalera</h2>
+      <img src="${data.fotoDataUrl}" alt="Foto de la escalera ${escapeHtml(data.idEscalera)}" style="display:block;max-width:100%;height:auto;border-radius:6px;border:1px solid #e5e7eb" />
+      <p style="margin:8px 0 0;font-size:13px;color:#6b7280">Foto de la escalera — ${escapeHtml(data.fecha)} / ${escapeHtml(data.idEscalera)}</p>
+    </div>` : ""}
     <h2 style="font-size:16px;color:#1e3a5f;border-bottom:2px solid #e8f1f8;padding-bottom:6px">Checklist</h2>
     <table style="width:100%;border-collapse:collapse">${rows}</table>
     ${data.obsGenerales ? `<h2 style="font-size:16px;color:#1e3a5f;margin-top:20px">Observaciones generales</h2><p style="font-size:14px;white-space:pre-wrap">${escapeHtml(data.obsGenerales)}</p>` : ""}
@@ -1140,9 +1215,15 @@
       "Tipo: " + data.tipo,
       "Ubicación: " + (data.ubicacion || "—"),
       "Generado: " + data.timestampLocal,
-      "",
-      "CHECKLIST:"
+      ""
     ];
+    if (data.fotoDataUrl) {
+      lines.push("Foto: incluida en el informe HTML descargado", "");
+    }
+    if (data.resultado !== "APTO") {
+      lines.push("Retirada/señalización: " + (data.retirada ? "Sí" : "No"), "");
+    }
+    lines.push("CHECKLIST:");
     data.answers.forEach(a => {
       lines.push(`${a.id} [${a.answerLabel}] ${a.text}`);
       if (a.obs) lines.push("   Obs.: " + a.obs);
@@ -1150,10 +1231,78 @@
     if (data.obsGenerales) {
       lines.push("", "Observaciones generales:", data.obsGenerales);
     }
-    if (data.resultado !== "APTO") {
-      lines.push("", "Retirada/señalización: " + (data.retirada ? "Sí" : "No"));
-    }
     return lines.join("\n");
+  }
+
+  function countAnswers(data) {
+    let conforme = 0, noConforme = 0, clear = 0, na = 0;
+    data.answers.forEach(a => {
+      if (a.answer === "conforme") conforme++;
+      else if (a.answer === "no_conforme") noConforme++;
+      else if (a.answer === "clear") clear++;
+      else if (a.answer === "na") na++;
+    });
+    return { conforme, noConforme, clear, na };
+  }
+
+  function buildMailtoShortBody(data) {
+    const c = countAnswers(data);
+    const lines = [
+      "REVISIÓN DE ESCALERAS MANUALES (resumen)",
+      "Resultado: " + (data.resultado === "APTO" ? "APTO PARA EL USO" : "NO APTO / RETIRAR DE USO"),
+      "Revisor/a: " + data.revisor,
+      "Fecha: " + data.fecha,
+      "Escalera: " + data.idEscalera,
+      "Tipo: " + data.tipo,
+      "Ubicación: " + (data.ubicacion || "—"),
+      "",
+      "Conteo checklist: " + c.conforme + " conforme, " +
+        (c.noConforme + c.clear) + " no conforme/clear, " + c.na + " N/A (total " + data.answers.length + ").",
+      ""
+    ];
+    if (data.obsGenerales) {
+      lines.push("Observaciones generales:", data.obsGenerales, "");
+    }
+    if (data.resultado !== "APTO") {
+      lines.push("Retirada/señalización: " + (data.retirada ? "Sí" : "No"), "");
+    }
+    if (data.fotoDataUrl) {
+      lines.push("Foto: incluida en el informe HTML descargado", "");
+    }
+    lines.push(
+      "El detalle completo del checklist está en el archivo HTML descargado.",
+      "Adjunte ese archivo a este correo si el cuerpo se ha truncado."
+    );
+    return lines.join("\n");
+  }
+
+  const MAILTO_BODY_LIMIT = 1800;
+
+  function openMailto(data) {
+    const subject = "Informe revisión escalera " + data.idEscalera + " — " +
+      (data.resultado === "APTO" ? "APTO" : "NO APTO");
+    let body = buildPlainSummary(data);
+    let truncated = false;
+    if (body.length > MAILTO_BODY_LIMIT) {
+      body = buildMailtoShortBody(data);
+      truncated = true;
+    }
+    const href = "mailto:" + data.emailDestino +
+      "?subject=" + encodeURIComponent(subject) +
+      "&body=" + encodeURIComponent(body);
+
+    // Prefer location.href for better mobile mail-app handoff; fall back to <a> click.
+    try {
+      window.location.href = href;
+    } catch (_) {
+      const a = document.createElement("a");
+      a.href = href;
+      a.style.display = "none";
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+    }
+    return { truncated, bodyLength: body.length };
   }
 
   function downloadReport(data) {
@@ -1167,7 +1316,7 @@
     document.body.appendChild(a);
     a.click();
     a.remove();
-    URL.revokeObjectURL(url);
+    setTimeout(function () { URL.revokeObjectURL(url); }, 2000);
   }
 
   function showStatus(type, html) {
@@ -1181,59 +1330,11 @@
     const txt = document.getElementById("btnEnviarText");
     btn.disabled = busy;
     txt.innerHTML = busy
-      ? '<span class="spinner" aria-hidden="true"></span> Enviando…'
+      ? '<span class="spinner" aria-hidden="true"></span> Preparando…'
       : "Enviar informe";
   }
 
-  async function sendViaFormSubmit(data) {
-    const endpoint = "https://formsubmit.co/ajax/" + encodeURIComponent(data.emailDestino);
-    const subject = `Informe revisión escalera ${data.idEscalera} — ${data.resultado === "APTO" ? "APTO" : "NO APTO"}`;
-
-    const payload = {
-      _subject: subject,
-      _template: "table",
-      _captcha: "false",
-      _format: "plain",
-      mensaje: "Informe de revisión de escalera manual. Ver campos a continuación.",
-      resultado: data.resultado === "APTO" ? "APTO PARA EL USO" : "NO APTO / RETIRAR DE USO",
-      revisor: data.revisor,
-      fecha_revision: data.fecha,
-      identificacion_escalera: data.idEscalera,
-      tipo_escalera: data.tipo,
-      ubicacion: data.ubicacion || "—",
-      retirada_senalizada: data.resultado !== "APTO" ? (data.retirada ? "Sí" : "No") : "N/A",
-      observaciones_generales: data.obsGenerales || "—",
-      generado: data.timestampLocal + " (Europe/Madrid)",
-      informe_html: buildEmailHtml(data),
-      informe_texto: buildPlainSummary(data)
-    };
-
-    // Flatten checklist into numbered fields for FormSubmit table template
-    data.answers.forEach(a => {
-      const key = `item_${a.id.replace(/\./g, "_")}`;
-      payload[key] = `[${a.answerLabel}] ${a.text}` + (a.obs ? ` | Obs: ${a.obs}` : "");
-    });
-
-    const res = await fetch(endpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Accept: "application/json"
-      },
-      body: JSON.stringify(payload)
-    });
-
-    let body = null;
-    try { body = await res.json(); } catch (_) { body = null; }
-
-    if (!res.ok) {
-      const msg = (body && (body.message || body.error)) || ("Error HTTP " + res.status);
-      throw new Error(msg);
-    }
-    return body;
-  }
-
-  document.getElementById("revisionForm").addEventListener("submit", async function (e) {
+  document.getElementById("revisionForm").addEventListener("submit", function (e) {
     e.preventDefault();
     document.querySelectorAll(".check-item.error-item").forEach(el => el.classList.remove("error-item"));
 
@@ -1248,7 +1349,6 @@
     }
 
     const data = collectData();
-    // Force NO APTO if any fail
     if (data.answers.some(a => a.answer === "no_conforme" || a.answer === "clear")) {
       data.resultado = "NO APTO";
     } else {
@@ -1256,28 +1356,29 @@
     }
 
     setSending(true);
-    showStatus("info", "Enviando informe a <strong>" + escapeHtml(data.emailDestino) + "</strong>…");
 
-    try {
-      await sendViaFormSubmit(data);
-      showStatus(
-        "success",
-        "<strong>Informe enviado correctamente</strong> a " + escapeHtml(data.emailDestino) + ".<br>" +
-        "Si es la primera vez que se envía a esta dirección, FormSubmit puede requerir que el destinatario confirme el correo (revise bandeja de entrada y spam).<br>" +
-        "También puede descargar una copia local del informe."
-      );
-      document.getElementById("btnReset").style.display = "inline-flex";
-      downloadReport(data);
-    } catch (err) {
-      console.error(err);
-      showStatus(
-        "error",
-        "<strong>No se pudo enviar el informe.</strong> " + escapeHtml(err.message || "Error de red") + ".<br>" +
-        "Compruebe la conexión y el correo de destino. Puede descargar el informe HTML como copia local."
-      );
-    } finally {
-      setSending(false);
+    // Always download full HTML copy first (offline-safe), then open mail app.
+    downloadReport(data);
+    const mail = openMailto(data);
+
+    let msg =
+      "<strong>Se ha abierto la aplicación de correo</strong> con destino " +
+      escapeHtml(data.emailDestino) + ".<br>" +
+      "Pulse <strong>Enviar</strong> en esa aplicación para remitir el informe.<br>" +
+      "También se ha descargado el informe HTML completo; puede adjuntarlo al correo si lo necesita.";
+    if (data.fotoDataUrl) {
+      msg +=
+        "<br><br><strong>Foto:</strong> la imagen de la escalera está en el informe HTML descargado. " +
+        "Adjunte ese archivo en la aplicación de correo si desea que la foto llegue al destinatario.";
     }
+    if (mail.truncated) {
+      msg +=
+        "<br><br><strong>Nota:</strong> el cuerpo del correo es un resumen porque el detalle es muy largo. " +
+        "Adjunte el archivo HTML descargado para enviar el checklist completo.";
+    }
+    showStatus("info", msg);
+    document.getElementById("btnReset").style.display = "inline-flex";
+    setSending(false);
   });
 
   document.getElementById("btnDescargar").addEventListener("click", function () {
@@ -1291,7 +1392,11 @@
       data.resultado = "PENDIENTE";
     }
     downloadReport(data);
-    showStatus("info", "Informe HTML descargado en su dispositivo.");
+    let dlMsg = "Informe HTML descargado en su dispositivo.";
+    if (data.fotoDataUrl) {
+      dlMsg += " La foto de la escalera está incluida en ese archivo.";
+    }
+    showStatus("info", dlMsg);
   });
 
   document.getElementById("btnReset").addEventListener("click", function () {
@@ -1306,8 +1411,115 @@
     document.querySelectorAll("input.error, select.error, textarea.error").forEach(el => el.classList.remove("error"));
     document.getElementById("btnReset").style.display = "none";
     document.getElementById("statusMsg").className = "status-msg";
+    clearFoto();
     updateUI();
     window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  function clearFoto() {
+    fotoDataUrl = null;
+    const input = document.getElementById("fotoEscalera");
+    if (input) input.value = "";
+    const wrap = document.getElementById("fotoPreviewWrap");
+    const img = document.getElementById("fotoPreview");
+    const meta = document.getElementById("fotoPreviewMeta");
+    const btnQuitar = document.getElementById("btnQuitarFoto");
+    const label = document.getElementById("fotoEscaleraLabel");
+    if (wrap) wrap.classList.remove("visible");
+    if (img) img.removeAttribute("src");
+    if (meta) meta.textContent = "";
+    if (btnQuitar) btnQuitar.style.display = "none";
+    if (label) label.textContent = "Tomar o elegir foto";
+  }
+
+  function showFotoPreview(dataUrl, infoText) {
+    const wrap = document.getElementById("fotoPreviewWrap");
+    const img = document.getElementById("fotoPreview");
+    const meta = document.getElementById("fotoPreviewMeta");
+    const btnQuitar = document.getElementById("btnQuitarFoto");
+    const label = document.getElementById("fotoEscaleraLabel");
+    img.src = dataUrl;
+    meta.textContent = infoText || "Foto lista para incluir en el informe.";
+    wrap.classList.add("visible");
+    btnQuitar.style.display = "inline-flex";
+    label.textContent = "Cambiar foto";
+  }
+
+  function compressImageFile(file) {
+    return new Promise(function (resolve, reject) {
+      const reader = new FileReader();
+      reader.onerror = function () { reject(new Error("No se pudo leer la imagen.")); };
+      reader.onload = function () {
+        const img = new Image();
+        img.onerror = function () { reject(new Error("Imagen no válida.")); };
+        img.onload = function () {
+          const maxEdge = 1280;
+          let w = img.naturalWidth || img.width;
+          let h = img.naturalHeight || img.height;
+          if (w > maxEdge || h > maxEdge) {
+            if (w >= h) {
+              h = Math.round(h * maxEdge / w);
+              w = maxEdge;
+            } else {
+              w = Math.round(w * maxEdge / h);
+              h = maxEdge;
+            }
+          }
+          const canvas = document.createElement("canvas");
+          canvas.width = w;
+          canvas.height = h;
+          const ctx = canvas.getContext("2d");
+          if (!ctx) {
+            // Fallback: use original data URL without compression
+            resolve({ dataUrl: String(reader.result), width: w, height: h, approxKB: Math.round(String(reader.result).length / 1024) });
+            return;
+          }
+          ctx.drawImage(img, 0, 0, w, h);
+          let dataUrl;
+          try {
+            dataUrl = canvas.toDataURL("image/jpeg", 0.72);
+          } catch (err) {
+            reject(err);
+            return;
+          }
+          resolve({
+            dataUrl: dataUrl,
+            width: w,
+            height: h,
+            approxKB: Math.round(dataUrl.length / 1024)
+          });
+        };
+        img.src = String(reader.result);
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  document.getElementById("fotoEscalera").addEventListener("change", function () {
+    const file = this.files && this.files[0];
+    if (!file) return;
+    if (!file.type || file.type.indexOf("image/") !== 0) {
+      showStatus("error", "Seleccione un archivo de imagen válido.");
+      this.value = "";
+      return;
+    }
+    showStatus("info", "Procesando foto…");
+    compressImageFile(file).then(function (res) {
+      fotoDataUrl = res.dataUrl;
+      showFotoPreview(
+        res.dataUrl,
+        "Vista previa (" + res.width + "×" + res.height + " px, ~" + res.approxKB + " KB). Se incluirá en el informe HTML."
+      );
+      showStatus("info", "Foto de la escalera añadida (opcional). Estará en el informe HTML descargado.");
+    }).catch(function () {
+      clearFoto();
+      showStatus("error", "No se pudo procesar la imagen. Pruebe con otra foto.");
+    });
+  });
+
+  document.getElementById("btnQuitarFoto").addEventListener("click", function () {
+    clearFoto();
+    showStatus("info", "Foto eliminada. Puede añadir otra si lo desea.");
   });
 
   // Init
