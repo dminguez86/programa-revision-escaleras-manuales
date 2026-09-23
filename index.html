@@ -1,0 +1,1319 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#1e3a5f" />
+  <title>Revisión de escaleras manuales</title>
+  <style>
+    :root {
+      --blue-900: #1e3a5f;
+      --blue-800: #234e7a;
+      --blue-700: #2c6aa0;
+      --blue-600: #3b82b0;
+      --blue-100: #e8f1f8;
+      --blue-50: #f4f8fb;
+      --gray-900: #1a1d23;
+      --gray-700: #3d4450;
+      --gray-500: #6b7280;
+      --gray-300: #d1d5db;
+      --gray-200: #e5e7eb;
+      --gray-100: #f3f4f6;
+      --gray-50: #f9fafb;
+      --white: #ffffff;
+      --green-700: #15803d;
+      --green-100: #dcfce7;
+      --red-700: #b91c1c;
+      --red-100: #fee2e2;
+      --amber-700: #b45309;
+      --amber-100: #fef3c7;
+      --radius: 10px;
+      --shadow: 0 1px 3px rgba(30, 58, 95, 0.08), 0 4px 12px rgba(30, 58, 95, 0.06);
+      --shadow-lg: 0 4px 20px rgba(30, 58, 95, 0.12);
+      --touch: 44px;
+      --font: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+
+    *, *::before, *::after { box-sizing: border-box; }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      margin: 0;
+      font-family: var(--font);
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--gray-900);
+      background: var(--blue-50);
+      -webkit-font-smoothing: antialiased;
+    }
+
+    .app-header {
+      background: linear-gradient(135deg, var(--blue-900) 0%, var(--blue-700) 100%);
+      color: var(--white);
+      padding: 1.25rem 1rem 1.5rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .app-header-inner {
+      max-width: 860px;
+      margin: 0 auto;
+    }
+
+    .app-header h1 {
+      margin: 0 0 0.25rem;
+      font-size: 1.45rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .app-header .subtitle {
+      margin: 0;
+      font-size: 0.85rem;
+      opacity: 0.88;
+      font-weight: 400;
+    }
+
+    .badge-prl {
+      display: inline-block;
+      margin-top: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      background: rgba(255,255,255,0.15);
+      border-radius: 999px;
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      text-transform: uppercase;
+      font-weight: 600;
+    }
+
+    .sticky-bar {
+      position: sticky;
+      top: 0;
+      z-index: 100;
+      background: var(--white);
+      border-bottom: 1px solid var(--gray-200);
+      box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    }
+
+    .sticky-bar-inner {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0.65rem 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem 1.25rem;
+      justify-content: space-between;
+    }
+
+    .progress-wrap {
+      flex: 1;
+      min-width: 160px;
+    }
+
+    .progress-label {
+      font-size: 0.8rem;
+      color: var(--gray-500);
+      margin-bottom: 0.25rem;
+      display: flex;
+      justify-content: space-between;
+    }
+
+    .progress-track {
+      height: 8px;
+      background: var(--gray-200);
+      border-radius: 999px;
+      overflow: hidden;
+    }
+
+    .progress-fill {
+      height: 100%;
+      width: 0%;
+      background: var(--blue-600);
+      border-radius: 999px;
+      transition: width 0.25s ease, background 0.25s ease;
+    }
+
+    .progress-fill.complete { background: var(--green-700); }
+
+    .resultado-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.45rem 0.9rem;
+      border-radius: 999px;
+      font-weight: 700;
+      font-size: 0.85rem;
+      letter-spacing: 0.02em;
+      white-space: nowrap;
+      border: 2px solid transparent;
+    }
+
+    .resultado-badge.pendiente {
+      background: var(--gray-100);
+      color: var(--gray-500);
+      border-color: var(--gray-300);
+    }
+
+    .resultado-badge.apto {
+      background: var(--green-100);
+      color: var(--green-700);
+      border-color: var(--green-700);
+    }
+
+    .resultado-badge.no-apto {
+      background: var(--red-100);
+      color: var(--red-700);
+      border-color: var(--red-700);
+      animation: pulse-soft 1.5s ease infinite;
+    }
+
+    @keyframes pulse-soft {
+      0%, 100% { opacity: 1; }
+      50% { opacity: 0.85; }
+    }
+
+    main {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 1.25rem 1rem 3rem;
+    }
+
+    .card {
+      background: var(--white);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding: 1.25rem 1.15rem;
+      margin-bottom: 1.15rem;
+      border: 1px solid var(--gray-200);
+    }
+
+    .card h2 {
+      margin: 0 0 1rem;
+      font-size: 1.1rem;
+      color: var(--blue-900);
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      padding-bottom: 0.65rem;
+      border-bottom: 2px solid var(--blue-100);
+    }
+
+    .section-num {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      width: 1.75rem;
+      height: 1.75rem;
+      background: var(--blue-900);
+      color: var(--white);
+      border-radius: 50%;
+      font-size: 0.8rem;
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+
+    .form-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1rem;
+    }
+
+    @media (max-width: 600px) {
+      .form-grid { grid-template-columns: 1fr; }
+      .app-header h1 { font-size: 1.25rem; }
+    }
+
+    .form-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .form-group.full { grid-column: 1 / -1; }
+
+    label {
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: var(--gray-700);
+    }
+
+    label .req {
+      color: var(--red-700);
+      margin-left: 0.15rem;
+    }
+
+    label .hint {
+      font-weight: 400;
+      color: var(--gray-500);
+      font-size: 0.8rem;
+    }
+
+    input[type="text"],
+    input[type="email"],
+    input[type="date"],
+    select,
+    textarea {
+      min-height: var(--touch);
+      padding: 0.55rem 0.75rem;
+      font-size: 1rem;
+      font-family: inherit;
+      border: 1.5px solid var(--gray-300);
+      border-radius: 8px;
+      background: var(--white);
+      color: var(--gray-900);
+      transition: border-color 0.15s, box-shadow 0.15s;
+      width: 100%;
+    }
+
+    input:focus, select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--blue-600);
+      box-shadow: 0 0 0 3px rgba(44, 106, 160, 0.2);
+    }
+
+    input.error, select.error, textarea.error {
+      border-color: var(--red-700);
+      background: #fff5f5;
+    }
+
+    textarea {
+      min-height: 100px;
+      resize: vertical;
+    }
+
+    .field-error {
+      color: var(--red-700);
+      font-size: 0.8rem;
+      display: none;
+    }
+
+    .field-error.visible { display: block; }
+
+    /* Checklist items */
+    .check-item {
+      padding: 0.9rem 0;
+      border-bottom: 1px solid var(--gray-100);
+    }
+
+    .check-item:last-child { border-bottom: none; }
+
+    .check-item.error-item {
+      background: #fff5f5;
+      margin: 0 -0.5rem;
+      padding-left: 0.5rem;
+      padding-right: 0.5rem;
+      border-radius: 8px;
+      border-bottom-color: transparent;
+    }
+
+    .check-question {
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: var(--gray-900);
+      margin-bottom: 0.6rem;
+      line-height: 1.4;
+    }
+
+    .check-question .item-hint {
+      display: block;
+      font-size: 0.8rem;
+      font-weight: 400;
+      color: var(--gray-500);
+      margin-top: 0.15rem;
+    }
+
+    .seg-control {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 0.35rem;
+    }
+
+    @media (max-width: 520px) {
+      .seg-control { grid-template-columns: 1fr 1fr; }
+    }
+
+    .seg-control input { position: absolute; opacity: 0; width: 0; height: 0; pointer-events: none; }
+
+    .seg-control label {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-height: var(--touch);
+      padding: 0.4rem 0.35rem;
+      text-align: center;
+      font-size: 0.78rem;
+      font-weight: 600;
+      border: 1.5px solid var(--gray-300);
+      border-radius: 8px;
+      background: var(--gray-50);
+      color: var(--gray-700);
+      cursor: pointer;
+      transition: all 0.15s;
+      user-select: none;
+      -webkit-tap-highlight-color: transparent;
+    }
+
+    .seg-control label:hover {
+      border-color: var(--blue-600);
+      background: var(--blue-50);
+    }
+
+    .seg-control input:focus-visible + label {
+      box-shadow: 0 0 0 3px rgba(44, 106, 160, 0.3);
+    }
+
+    .seg-control input:checked + label.opt-clear {
+      background: var(--gray-700);
+      border-color: var(--gray-700);
+      color: var(--white);
+    }
+
+    .seg-control input:checked + label.opt-conforme {
+      background: var(--green-700);
+      border-color: var(--green-700);
+      color: var(--white);
+    }
+
+    .seg-control input:checked + label.opt-no-conforme {
+      background: var(--red-700);
+      border-color: var(--red-700);
+      color: var(--white);
+    }
+
+    .seg-control input:checked + label.opt-na {
+      background: var(--amber-700);
+      border-color: var(--amber-700);
+      color: var(--white);
+    }
+
+    .item-obs {
+      margin-top: 0.55rem;
+      display: none;
+    }
+
+    .item-obs.visible { display: block; }
+
+    .item-obs label {
+      font-size: 0.8rem;
+      color: var(--red-700);
+    }
+
+    .item-obs textarea {
+      min-height: 64px;
+      font-size: 0.9rem;
+    }
+
+    .retirada-box {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem;
+      background: var(--red-100);
+      border: 2px solid var(--red-700);
+      border-radius: 8px;
+    }
+
+    .retirada-box.visible { display: block; }
+
+    .retirada-box label {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      cursor: pointer;
+      font-size: 0.95rem;
+      color: var(--red-700);
+      font-weight: 600;
+    }
+
+    .retirada-box input[type="checkbox"] {
+      width: 1.35rem;
+      height: 1.35rem;
+      margin-top: 0.1rem;
+      flex-shrink: 0;
+      accent-color: var(--red-700);
+    }
+
+    .resultado-display {
+      margin-top: 0.75rem;
+      padding: 1rem;
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.15rem;
+      font-weight: 800;
+      letter-spacing: 0.03em;
+    }
+
+    .resultado-display.apto {
+      background: var(--green-100);
+      color: var(--green-700);
+      border: 2px solid var(--green-700);
+    }
+
+    .resultado-display.no-apto {
+      background: var(--red-100);
+      color: var(--red-700);
+      border: 2px solid var(--red-700);
+    }
+
+    .resultado-display.pendiente {
+      background: var(--gray-100);
+      color: var(--gray-500);
+      border: 2px solid var(--gray-300);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.45rem;
+      min-height: var(--touch);
+      padding: 0.65rem 1.25rem;
+      font-size: 1rem;
+      font-weight: 600;
+      font-family: inherit;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: transform 0.1s, box-shadow 0.15s, background 0.15s;
+      text-decoration: none;
+    }
+
+    .btn:active { transform: scale(0.98); }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .btn-primary {
+      background: var(--blue-900);
+      color: var(--white);
+      flex: 1;
+      min-width: 180px;
+      box-shadow: 0 2px 8px rgba(30, 58, 95, 0.25);
+    }
+
+    .btn-primary:hover:not(:disabled) { background: var(--blue-800); }
+
+    .btn-secondary {
+      background: var(--white);
+      color: var(--blue-900);
+      border: 1.5px solid var(--blue-700);
+    }
+
+    .btn-secondary:hover:not(:disabled) { background: var(--blue-50); }
+
+    .btn-ghost {
+      background: transparent;
+      color: var(--gray-700);
+      border: 1.5px solid var(--gray-300);
+    }
+
+    .btn-ghost:hover:not(:disabled) { background: var(--gray-100); }
+
+    .status-msg {
+      display: none;
+      margin-top: 1rem;
+      padding: 1rem;
+      border-radius: 8px;
+      font-size: 0.95rem;
+      line-height: 1.45;
+    }
+
+    .status-msg.visible { display: block; }
+
+    .status-msg.success {
+      background: var(--green-100);
+      color: var(--green-700);
+      border: 1px solid var(--green-700);
+    }
+
+    .status-msg.error {
+      background: var(--red-100);
+      color: var(--red-700);
+      border: 1px solid var(--red-700);
+    }
+
+    .status-msg.info {
+      background: var(--amber-100);
+      color: var(--amber-700);
+      border: 1px solid var(--amber-700);
+    }
+
+    .spinner {
+      display: inline-block;
+      width: 1.1rem;
+      height: 1.1rem;
+      border: 2px solid rgba(255,255,255,0.3);
+      border-top-color: #fff;
+      border-radius: 50%;
+      animation: spin 0.7s linear infinite;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .app-footer {
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 0 1rem 2rem;
+      text-align: center;
+      font-size: 0.78rem;
+      color: var(--gray-500);
+      line-height: 1.45;
+    }
+
+    .legend {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem 1rem;
+      margin-bottom: 0.75rem;
+      font-size: 0.75rem;
+      color: var(--gray-500);
+    }
+
+    .legend span::before {
+      content: "";
+      display: inline-block;
+      width: 0.65rem;
+      height: 0.65rem;
+      border-radius: 2px;
+      margin-right: 0.3rem;
+      vertical-align: middle;
+    }
+
+    .legend .l-clear::before { background: var(--gray-700); }
+    .legend .l-ok::before { background: var(--green-700); }
+    .legend .l-ko::before { background: var(--red-700); }
+    .legend .l-na::before { background: var(--amber-700); }
+
+    /* Print */
+    @media print {
+      body { background: white; font-size: 11pt; }
+      .app-header { background: var(--blue-900) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: none; }
+      .sticky-bar, .actions, .status-msg, .legend, .badge-prl { display: none !important; }
+      .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; page-break-inside: avoid; }
+      .seg-control label { border: 1px solid #999; min-height: 28px; font-size: 8pt; }
+      .seg-control input:checked + label {
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+      }
+      .app-footer { border-top: 1px solid #ccc; padding-top: 0.75rem; }
+      main { padding: 0.5rem; }
+    }
+  </style>
+</head>
+<body>
+  <header class="app-header">
+    <div class="app-header-inner">
+      <h1>Revisión de escaleras manuales</h1>
+      <p class="subtitle">Inspección previa al uso / periódica — RD 2177/2004</p>
+      <span class="badge-prl">PRL · Control interno</span>
+    </div>
+  </header>
+
+  <div class="sticky-bar" id="stickyBar">
+    <div class="sticky-bar-inner">
+      <div class="progress-wrap">
+        <div class="progress-label">
+          <span>Progreso del checklist</span>
+          <span id="progressText">0 / 0</span>
+        </div>
+        <div class="progress-track">
+          <div class="progress-fill" id="progressFill"></div>
+        </div>
+      </div>
+      <div class="resultado-badge pendiente" id="stickyResultado" aria-live="polite">Resultado: —</div>
+    </div>
+  </div>
+
+  <main>
+    <form id="revisionForm" novalidate>
+      <!-- Header fields -->
+      <section class="card" id="sec-datos">
+        <h2><span class="section-num">0</span> Datos de la revisión</h2>
+        <div class="form-grid">
+          <div class="form-group full">
+            <label for="revisor">Nombre de la persona que realiza la revisión <span class="req">*</span></label>
+            <input type="text" id="revisor" name="revisor" required autocomplete="name" placeholder="Indique su nombre completo" />
+            <span class="field-error" id="err-revisor">Indique el nombre de quien realiza la revisión.</span>
+          </div>
+          <div class="form-group">
+            <label for="fecha">Fecha de la revisión <span class="req">*</span></label>
+            <input type="date" id="fecha" name="fecha" required />
+            <span class="field-error" id="err-fecha">Indique la fecha de la revisión.</span>
+          </div>
+          <div class="form-group">
+            <label for="idEscalera">Identificación de la escalera <span class="req">*</span></label>
+            <input type="text" id="idEscalera" name="idEscalera" required placeholder="Código, número o ubicación" />
+            <span class="field-error" id="err-idEscalera">Indique la identificación de la escalera.</span>
+          </div>
+          <div class="form-group">
+            <label for="tipo">Tipo de escalera <span class="req">*</span></label>
+            <select id="tipo" name="tipo" required>
+              <option value="">— Seleccione —</option>
+              <option value="Simple de apoyo">Simple de apoyo</option>
+              <option value="De tijera / doble">De tijera / doble</option>
+              <option value="Extensible">Extensible</option>
+              <option value="Telescópica">Telescópica</option>
+              <option value="Transformable / combinada">Transformable / combinada</option>
+              <option value="Otra">Otra</option>
+            </select>
+            <span class="field-error" id="err-tipo">Seleccione el tipo de escalera.</span>
+          </div>
+          <div class="form-group">
+            <label for="ubicacion">Ubicación / centro de trabajo <span class="hint">(opcional)</span></label>
+            <input type="text" id="ubicacion" name="ubicacion" placeholder="Centro, nave, zona…" />
+          </div>
+          <div class="form-group full">
+            <label for="emailDestino">Correo electrónico de destino del informe <span class="req">*</span></label>
+            <input type="email" id="emailDestino" name="emailDestino" required autocomplete="email" placeholder="responsable.prl@empresa.es" />
+            <span class="field-error" id="err-emailDestino">Indique un correo electrónico válido de destino.</span>
+          </div>
+        </div>
+      </section>
+
+      <div class="legend" aria-hidden="true">
+        <span class="l-clear">Clear (defectuoso / no usable)</span>
+        <span class="l-ok">Conforme</span>
+        <span class="l-ko">No conforme</span>
+        <span class="l-na">No aplica</span>
+      </div>
+
+      <div id="checklistSections"></div>
+
+      <!-- Resultado -->
+      <section class="card" id="sec-resultado">
+        <h2><span class="section-num">7</span> Resultado y observaciones</h2>
+        <div class="form-group">
+          <label for="obsGenerales">Observaciones generales</label>
+          <textarea id="obsGenerales" name="obsGenerales" placeholder="Añada comentarios adicionales si procede…"></textarea>
+        </div>
+        <div class="resultado-display pendiente" id="resultadoDisplay" aria-live="polite">RESULTADO: PENDIENTE</div>
+        <div class="retirada-box" id="retiradaBox">
+          <label>
+            <input type="checkbox" id="retiradaConfirm" name="retiradaConfirm" />
+            <span>Escalera retirada de uso / señalizada <span class="req">*</span><br />
+              <span style="font-weight:400;font-size:0.85rem;color:var(--gray-700)">Obligatorio cuando el resultado es NO APTO. Confirme que la escalera ha sido retirada o señalizada para impedir su uso.</span>
+            </span>
+          </label>
+          <span class="field-error" id="err-retirada" style="margin-top:0.5rem">Confirme la retirada / señalización de la escalera.</span>
+        </div>
+      </section>
+
+      <section class="card" id="sec-envio">
+        <h2><span class="section-num">✉</span> Envío del informe</h2>
+        <p style="margin:0 0 1rem;font-size:0.9rem;color:var(--gray-500)">
+          Al enviar, el informe se remite automáticamente al correo indicado. La primera vez que se use una dirección nueva, FormSubmit puede exigir una confirmación del destinatario.
+        </p>
+        <div class="actions">
+          <button type="submit" class="btn btn-primary" id="btnEnviar">
+            <span id="btnEnviarText">Enviar informe</span>
+          </button>
+          <button type="button" class="btn btn-secondary" id="btnDescargar">Descargar informe (HTML)</button>
+          <button type="button" class="btn btn-ghost" id="btnReset" style="display:none">Nueva revisión</button>
+        </div>
+        <div class="status-msg" id="statusMsg" role="status"></div>
+      </section>
+    </form>
+  </main>
+
+  <footer class="app-footer">
+    Documento de control interno. No sustituye las instrucciones del fabricante ni la evaluación de riesgos de la empresa.<br />
+    Referencias: RD 2177/2004 · UNE-EN 131 · buenas prácticas INSST / AFESPO
+  </footer>
+
+  <script>
+(function () {
+  "use strict";
+
+  const SECTIONS = [
+    {
+      id: 1,
+      title: "Identificación y marcado",
+      items: [
+        { id: "1.1", text: "Etiqueta / marcado del fabricante legible", hint: "Carga máxima, norma EN 131, etc." },
+        { id: "1.2", text: "Identificación interna de la empresa visible" },
+        { id: "1.3", text: "Instrucciones de uso disponibles o conocidas" }
+      ]
+    },
+    {
+      id: 2,
+      title: "Estructura general (largueros / laterales)",
+      items: [
+        { id: "2.1", text: "Largueros sin grietas, roturas ni deformaciones" },
+        { id: "2.2", text: "Sin golpes, abolladuras ni corrosión relevantes" },
+        { id: "2.3", text: "Uniones larguero-peldaño firmes", hint: "Sin holguras; tornillos o remaches sueltos" },
+        { id: "2.4", text: "Escalera de madera: no pintada", hint: "La pintura oculta defectos. Marque «No aplica» si no es de madera." }
+      ]
+    },
+    {
+      id: 3,
+      title: "Peldaños",
+      items: [
+        { id: "3.1", text: "Peldaños completos, sin roturas, grietas ni deformaciones" },
+        { id: "3.2", text: "Bien fijados y alineados (horizontales)" },
+        { id: "3.3", text: "Superficie limpia, sin grasa, aceite ni residuales resbaladizos" },
+        { id: "3.4", text: "Antideslizante de peldaños en buen estado", hint: "Si aplica" }
+      ]
+    },
+    {
+      id: 4,
+      title: "Zapatas y apoyo",
+      items: [
+        { id: "4.1", text: "Zapatas / pies antideslizantes presentes en ambos laterales" },
+        { id: "4.2", text: "Sin desgaste excesivo, roturas ni pérdida de adherencia" },
+        { id: "4.3", text: "Estables sobre superficie nivelada", hint: "Sin balanceo anormal en vacío" }
+      ]
+    },
+    {
+      id: 5,
+      title: "Dispositivos de seguridad",
+      items: [
+        { id: "5.1", text: "Tirantes, cintas o barras de seguridad en buen estado", hint: "N/A si no aplica según tipo" },
+        { id: "5.2", text: "Mecanismos de bloqueo / articulación funcionan y quedan firmes", hint: "N/A si no aplica" },
+        { id: "5.3", text: "En extensibles: inmovilización recíproca de tramos correcta", hint: "N/A si no es extensible" },
+        { id: "5.4", text: "En tijera: limitador de apertura operativo", hint: "N/A si no es de tijera" },
+        { id: "5.5", text: "Ruedas (si las hay): inmovilizables / freno operativo", hint: "N/A si no tiene ruedas" }
+      ]
+    },
+    {
+      id: 6,
+      title: "Estado general y limpieza",
+      items: [
+        { id: "6.1", text: "Sin elementos sueltos, faltantes o improvisados" },
+        { id: "6.2", text: "Limpieza general adecuada para inspección visual" },
+        { id: "6.3", text: "Sin reparaciones deficientes o no autorizadas" }
+      ]
+    }
+  ];
+
+  const OPTS = [
+    { value: "clear", label: "Clear", cls: "opt-clear" },
+    { value: "conforme", label: "Conforme", cls: "opt-conforme" },
+    { value: "no_conforme", label: "No conforme", cls: "opt-no-conforme" },
+    { value: "na", label: "No aplica", cls: "opt-na" }
+  ];
+
+  const LABEL_MAP = {
+    clear: "Clear",
+    conforme: "Conforme",
+    no_conforme: "No conforme",
+    na: "No aplica"
+  };
+
+  const allItems = SECTIONS.flatMap(s => s.items);
+  const TOTAL = allItems.length;
+
+  // Build checklist DOM
+  const container = document.getElementById("checklistSections");
+  SECTIONS.forEach(sec => {
+    const section = document.createElement("section");
+    section.className = "card";
+    section.id = "sec-" + sec.id;
+    section.innerHTML = `<h2><span class="section-num">${sec.id}</span> ${sec.title}</h2>`;
+    const list = document.createElement("div");
+    list.className = "check-list";
+    sec.items.forEach(item => {
+      const div = document.createElement("div");
+      div.className = "check-item";
+      div.dataset.itemId = item.id;
+      const hint = item.hint ? `<span class="item-hint">${item.hint}</span>` : "";
+      const radios = OPTS.map(o =>
+        `<input type="radio" name="item_${item.id}" id="item_${item.id}_${o.value}" value="${o.value}" />` +
+        `<label for="item_${item.id}_${o.value}" class="${o.cls}">${o.label}</label>`
+      ).join("");
+      div.innerHTML =
+        `<div class="check-question"><strong>${item.id}</strong> — ${item.text}${hint}</div>` +
+        `<div class="seg-control" role="radiogroup" aria-label="${item.text}">${radios}</div>` +
+        `<div class="item-obs" id="obs_wrap_${item.id}">` +
+          `<label for="obs_${item.id}">Observaciones (obligatorio si No conforme / Clear) <span class="req">*</span></label>` +
+          `<textarea id="obs_${item.id}" name="obs_${item.id}" placeholder="Describa el defecto o incidencia…"></textarea>` +
+          `<span class="field-error" id="err-obs_${item.id}">Indique observaciones para este punto no conforme.</span>` +
+        `</div>` +
+        `<span class="field-error" id="err-item_${item.id}">Seleccione una opción.</span>`;
+      list.appendChild(div);
+    });
+    section.appendChild(list);
+    container.appendChild(section);
+  });
+
+  // Default date = today (local)
+  const fechaInput = document.getElementById("fecha");
+  (function setToday() {
+    const d = new Date();
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, "0");
+    const dd = String(d.getDate()).padStart(2, "0");
+    fechaInput.value = `${yyyy}-${mm}-${dd}`;
+  })();
+
+  // State helpers
+  function getAnswer(itemId) {
+    const el = document.querySelector(`input[name="item_${itemId}"]:checked`);
+    return el ? el.value : null;
+  }
+
+  function getItemObs(itemId) {
+    return (document.getElementById("obs_" + itemId).value || "").trim();
+  }
+
+  function computeResultado() {
+    let answered = 0;
+    let hasFail = false;
+    let incomplete = false;
+    allItems.forEach(item => {
+      const a = getAnswer(item.id);
+      if (a) {
+        answered++;
+        if (a === "no_conforme" || a === "clear") hasFail = true;
+      } else {
+        incomplete = true;
+      }
+    });
+    let resultado = "PENDIENTE";
+    if (!incomplete && answered === TOTAL) {
+      resultado = hasFail ? "NO APTO" : "APTO";
+    } else if (hasFail) {
+      resultado = "NO APTO"; // provisional if any fail already marked
+    }
+    return { answered, total: TOTAL, resultado, hasFail, incomplete };
+  }
+
+  function updateUI() {
+    const { answered, total, resultado, hasFail, incomplete } = computeResultado();
+    const pct = total ? Math.round((answered / total) * 100) : 0;
+    document.getElementById("progressText").textContent = `${answered} / ${total}`;
+    const fill = document.getElementById("progressFill");
+    fill.style.width = pct + "%";
+    fill.classList.toggle("complete", answered === total && !hasFail);
+
+    const sticky = document.getElementById("stickyResultado");
+    const display = document.getElementById("resultadoDisplay");
+    sticky.className = "resultado-badge";
+    display.className = "resultado-display";
+
+    if (resultado === "APTO") {
+      sticky.classList.add("apto");
+      display.classList.add("apto");
+      sticky.textContent = "APTO";
+      display.textContent = "RESULTADO: APTO PARA EL USO";
+    } else if (resultado === "NO APTO") {
+      sticky.classList.add("no-apto");
+      display.classList.add("no-apto");
+      sticky.textContent = "NO APTO / RETIRAR";
+      display.textContent = incomplete
+        ? "RESULTADO PROVISIONAL: NO APTO / RETIRAR DE USO"
+        : "RESULTADO: NO APTO / RETIRAR DE USO";
+    } else {
+      sticky.classList.add("pendiente");
+      display.classList.add("pendiente");
+      sticky.textContent = "Resultado: —";
+      display.textContent = "RESULTADO: PENDIENTE DE COMPLETAR";
+    }
+
+    const retiradaBox = document.getElementById("retiradaBox");
+    if (resultado === "NO APTO" && !incomplete) {
+      retiradaBox.classList.add("visible");
+    } else if (hasFail) {
+      retiradaBox.classList.add("visible");
+    } else {
+      retiradaBox.classList.remove("visible");
+      document.getElementById("retiradaConfirm").checked = false;
+      clearFieldError("retirada");
+    }
+
+    // Show/hide per-item obs
+    allItems.forEach(item => {
+      const a = getAnswer(item.id);
+      const wrap = document.getElementById("obs_wrap_" + item.id);
+      if (a === "no_conforme" || a === "clear") {
+        wrap.classList.add("visible");
+      } else {
+        wrap.classList.remove("visible");
+        clearFieldError("obs_" + item.id);
+      }
+    });
+  }
+
+  document.getElementById("checklistSections").addEventListener("change", function (e) {
+    if (e.target.matches('input[type="radio"]')) {
+      const itemEl = e.target.closest(".check-item");
+      if (itemEl) {
+        itemEl.classList.remove("error-item");
+        const id = itemEl.dataset.itemId;
+        clearFieldError("item_" + id);
+      }
+      updateUI();
+    }
+  });
+
+  document.getElementById("checklistSections").addEventListener("input", function (e) {
+    if (e.target.matches("textarea")) {
+      const id = e.target.id.replace(/^obs_/, "");
+      if (e.target.value.trim()) clearFieldError("obs_" + id);
+    }
+  });
+
+  ["revisor", "fecha", "idEscalera", "tipo", "emailDestino"].forEach(id => {
+    const el = document.getElementById(id);
+    el.addEventListener("input", () => clearFieldError(id));
+    el.addEventListener("change", () => clearFieldError(id));
+  });
+
+  document.getElementById("retiradaConfirm").addEventListener("change", function () {
+    if (this.checked) clearFieldError("retirada");
+  });
+
+  function showFieldError(id) {
+    const err = document.getElementById("err-" + id);
+    if (err) err.classList.add("visible");
+    const field = document.getElementById(id);
+    if (field) field.classList.add("error");
+  }
+
+  function clearFieldError(id) {
+    const err = document.getElementById("err-" + id);
+    if (err) err.classList.remove("visible");
+    const field = document.getElementById(id);
+    if (field) field.classList.remove("error");
+  }
+
+  function isValidEmail(v) {
+    return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
+  }
+
+  function collectData() {
+    const { resultado, hasFail } = computeResultado();
+    const finalResultado = hasFail ? "NO APTO" : (resultado === "APTO" ? "APTO" : resultado);
+    const answers = allItems.map(item => ({
+      id: item.id,
+      text: item.text,
+      answer: getAnswer(item.id),
+      answerLabel: LABEL_MAP[getAnswer(item.id)] || "—",
+      obs: getItemObs(item.id)
+    }));
+    return {
+      revisor: document.getElementById("revisor").value.trim(),
+      fecha: document.getElementById("fecha").value,
+      idEscalera: document.getElementById("idEscalera").value.trim(),
+      tipo: document.getElementById("tipo").value,
+      ubicacion: document.getElementById("ubicacion").value.trim(),
+      emailDestino: document.getElementById("emailDestino").value.trim(),
+      obsGenerales: document.getElementById("obsGenerales").value.trim(),
+      resultado: finalResultado,
+      retirada: document.getElementById("retiradaConfirm").checked,
+      answers,
+      timestamp: new Date().toISOString(),
+      timestampLocal: new Date().toLocaleString("es-ES", { timeZone: "Europe/Madrid" })
+    };
+  }
+
+  function validate() {
+    let firstError = null;
+    function mark(el, errId) {
+      showFieldError(errId);
+      if (!firstError) firstError = el;
+    }
+
+    const revisor = document.getElementById("revisor");
+    if (!revisor.value.trim()) mark(revisor, "revisor");
+
+    const fecha = document.getElementById("fecha");
+    if (!fecha.value) mark(fecha, "fecha");
+
+    const idEsc = document.getElementById("idEscalera");
+    if (!idEsc.value.trim()) mark(idEsc, "idEscalera");
+
+    const tipo = document.getElementById("tipo");
+    if (!tipo.value) mark(tipo, "tipo");
+
+    const email = document.getElementById("emailDestino");
+    if (!email.value.trim() || !isValidEmail(email.value.trim())) mark(email, "emailDestino");
+
+    allItems.forEach(item => {
+      const a = getAnswer(item.id);
+      const itemEl = document.querySelector(`.check-item[data-item-id="${item.id}"]`);
+      if (!a) {
+        itemEl.classList.add("error-item");
+        showFieldError("item_" + item.id);
+        if (!firstError) firstError = itemEl;
+      } else if (a === "no_conforme" || a === "clear") {
+        if (!getItemObs(item.id)) {
+          showFieldError("obs_" + item.id);
+          if (!firstError) firstError = document.getElementById("obs_" + item.id);
+        }
+      }
+    });
+
+    const { resultado, hasFail, incomplete } = computeResultado();
+    const needsRetirada = hasFail && !incomplete;
+    if (needsRetirada || (resultado === "NO APTO" && !incomplete)) {
+      if (!document.getElementById("retiradaConfirm").checked) {
+        showFieldError("retirada");
+        if (!firstError) firstError = document.getElementById("retiradaConfirm");
+      }
+    }
+
+    // Also block if checklist incomplete
+    if (incomplete && !firstError) {
+      const unanswered = allItems.find(i => !getAnswer(i.id));
+      if (unanswered) {
+        const el = document.querySelector(`.check-item[data-item-id="${unanswered.id}"]`);
+        firstError = el;
+      }
+    }
+
+    return firstError;
+  }
+
+  function buildEmailHtml(data) {
+    const rows = data.answers.map(a => {
+      const color = a.answer === "conforme" ? "#15803d"
+        : (a.answer === "no_conforme" || a.answer === "clear") ? "#b91c1c"
+        : a.answer === "na" ? "#b45309" : "#6b7280";
+      const obsRow = a.obs
+        ? `<tr><td colspan="2" style="padding:4px 8px 10px 24px;font-size:13px;color:#3d4450;background:#f9fafb"><em>Obs.:</em> ${escapeHtml(a.obs)}</td></tr>`
+        : "";
+      return `<tr>
+        <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-size:14px">${escapeHtml(a.id)} — ${escapeHtml(a.text)}</td>
+        <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${color};white-space:nowrap">${escapeHtml(a.answerLabel)}</td>
+      </tr>${obsRow}`;
+    }).join("");
+
+    const resColor = data.resultado === "APTO" ? "#15803d" : "#b91c1c";
+    const resBg = data.resultado === "APTO" ? "#dcfce7" : "#fee2e2";
+    const resText = data.resultado === "APTO" ? "APTO PARA EL USO" : "NO APTO / RETIRAR DE USO";
+
+    return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Informe revisión escalera</title></head>
+<body style="font-family:Segoe UI,Arial,sans-serif;color:#1a1d23;max-width:720px;margin:0 auto;padding:16px">
+  <div style="background:#1e3a5f;color:#fff;padding:16px 20px;border-radius:8px 8px 0 0">
+    <h1 style="margin:0;font-size:20px">Revisión de escaleras manuales</h1>
+    <p style="margin:4px 0 0;font-size:13px;opacity:0.9">RD 2177/2004 · Informe de inspección</p>
+  </div>
+  <div style="border:1px solid #e5e7eb;border-top:none;padding:16px 20px;border-radius:0 0 8px 8px">
+    <table style="width:100%;border-collapse:collapse;margin-bottom:16px;font-size:14px">
+      <tr><td style="padding:6px 0;color:#6b7280;width:40%">Revisor/a</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.revisor)}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Fecha revisión</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.fecha)}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Identificación escalera</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.idEscalera)}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Tipo</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.tipo)}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Ubicación / centro</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.ubicacion || "—")}</td></tr>
+      <tr><td style="padding:6px 0;color:#6b7280">Generado</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.timestampLocal)} (Europe/Madrid)</td></tr>
+    </table>
+    <div style="background:${resBg};color:${resColor};border:2px solid ${resColor};padding:12px;text-align:center;font-weight:800;font-size:18px;border-radius:8px;margin-bottom:16px">
+      ${resText}
+    </div>
+    ${data.resultado !== "APTO" ? `<p style="font-size:14px;color:#b91c1c"><strong>Retirada / señalización:</strong> ${data.retirada ? "Sí, confirmada" : "No confirmada"}</p>` : ""}
+    <h2 style="font-size:16px;color:#1e3a5f;border-bottom:2px solid #e8f1f8;padding-bottom:6px">Checklist</h2>
+    <table style="width:100%;border-collapse:collapse">${rows}</table>
+    ${data.obsGenerales ? `<h2 style="font-size:16px;color:#1e3a5f;margin-top:20px">Observaciones generales</h2><p style="font-size:14px;white-space:pre-wrap">${escapeHtml(data.obsGenerales)}</p>` : ""}
+    <p style="margin-top:24px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:12px">
+      Documento de control interno. No sustituye las instrucciones del fabricante.<br>
+      Referencias: RD 2177/2004 · UNE-EN 131 · INSST / AFESPO
+    </p>
+  </div>
+</body></html>`;
+  }
+
+  function escapeHtml(s) {
+    return String(s == null ? "" : s)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+  }
+
+  function buildPlainSummary(data) {
+    const lines = [
+      "REVISIÓN DE ESCALERAS MANUALES",
+      "Resultado: " + (data.resultado === "APTO" ? "APTO PARA EL USO" : "NO APTO / RETIRAR DE USO"),
+      "Revisor/a: " + data.revisor,
+      "Fecha: " + data.fecha,
+      "Escalera: " + data.idEscalera,
+      "Tipo: " + data.tipo,
+      "Ubicación: " + (data.ubicacion || "—"),
+      "Generado: " + data.timestampLocal,
+      "",
+      "CHECKLIST:"
+    ];
+    data.answers.forEach(a => {
+      lines.push(`${a.id} [${a.answerLabel}] ${a.text}`);
+      if (a.obs) lines.push("   Obs.: " + a.obs);
+    });
+    if (data.obsGenerales) {
+      lines.push("", "Observaciones generales:", data.obsGenerales);
+    }
+    if (data.resultado !== "APTO") {
+      lines.push("", "Retirada/señalización: " + (data.retirada ? "Sí" : "No"));
+    }
+    return lines.join("\n");
+  }
+
+  function downloadReport(data) {
+    const html = buildEmailHtml(data);
+    const blob = new Blob([html], { type: "text/html;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    const safeId = (data.idEscalera || "escalera").replace(/[^\w\-áéíóúñÁÉÍÓÚÑ]+/gi, "_").slice(0, 40);
+    a.href = url;
+    a.download = `informe-escalera-${safeId}-${data.fecha || "sin-fecha"}.html`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function showStatus(type, html) {
+    const el = document.getElementById("statusMsg");
+    el.className = "status-msg visible " + type;
+    el.innerHTML = html;
+  }
+
+  function setSending(busy) {
+    const btn = document.getElementById("btnEnviar");
+    const txt = document.getElementById("btnEnviarText");
+    btn.disabled = busy;
+    txt.innerHTML = busy
+      ? '<span class="spinner" aria-hidden="true"></span> Enviando…'
+      : "Enviar informe";
+  }
+
+  async function sendViaFormSubmit(data) {
+    const endpoint = "https://formsubmit.co/ajax/" + encodeURIComponent(data.emailDestino);
+    const subject = `Informe revisión escalera ${data.idEscalera} — ${data.resultado === "APTO" ? "APTO" : "NO APTO"}`;
+
+    const payload = {
+      _subject: subject,
+      _template: "table",
+      _captcha: "false",
+      _format: "plain",
+      mensaje: "Informe de revisión de escalera manual. Ver campos a continuación.",
+      resultado: data.resultado === "APTO" ? "APTO PARA EL USO" : "NO APTO / RETIRAR DE USO",
+      revisor: data.revisor,
+      fecha_revision: data.fecha,
+      identificacion_escalera: data.idEscalera,
+      tipo_escalera: data.tipo,
+      ubicacion: data.ubicacion || "—",
+      retirada_senalizada: data.resultado !== "APTO" ? (data.retirada ? "Sí" : "No") : "N/A",
+      observaciones_generales: data.obsGenerales || "—",
+      generado: data.timestampLocal + " (Europe/Madrid)",
+      informe_html: buildEmailHtml(data),
+      informe_texto: buildPlainSummary(data)
+    };
+
+    // Flatten checklist into numbered fields for FormSubmit table template
+    data.answers.forEach(a => {
+      const key = `item_${a.id.replace(/\./g, "_")}`;
+      payload[key] = `[${a.answerLabel}] ${a.text}` + (a.obs ? ` | Obs: ${a.obs}` : "");
+    });
+
+    const res = await fetch(endpoint, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Accept: "application/json"
+      },
+      body: JSON.stringify(payload)
+    });
+
+    let body = null;
+    try { body = await res.json(); } catch (_) { body = null; }
+
+    if (!res.ok) {
+      const msg = (body && (body.message || body.error)) || ("Error HTTP " + res.status);
+      throw new Error(msg);
+    }
+    return body;
+  }
+
+  document.getElementById("revisionForm").addEventListener("submit", async function (e) {
+    e.preventDefault();
+    document.querySelectorAll(".check-item.error-item").forEach(el => el.classList.remove("error-item"));
+
+    const firstError = validate();
+    if (firstError) {
+      firstError.scrollIntoView({ behavior: "smooth", block: "center" });
+      if (typeof firstError.focus === "function") {
+        try { firstError.focus({ preventScroll: true }); } catch (_) {}
+      }
+      showStatus("error", "Revise los campos marcados. Debe responder todos los puntos del checklist antes de enviar.");
+      return;
+    }
+
+    const data = collectData();
+    // Force NO APTO if any fail
+    if (data.answers.some(a => a.answer === "no_conforme" || a.answer === "clear")) {
+      data.resultado = "NO APTO";
+    } else {
+      data.resultado = "APTO";
+    }
+
+    setSending(true);
+    showStatus("info", "Enviando informe a <strong>" + escapeHtml(data.emailDestino) + "</strong>…");
+
+    try {
+      await sendViaFormSubmit(data);
+      showStatus(
+        "success",
+        "<strong>Informe enviado correctamente</strong> a " + escapeHtml(data.emailDestino) + ".<br>" +
+        "Si es la primera vez que se envía a esta dirección, FormSubmit puede requerir que el destinatario confirme el correo (revise bandeja de entrada y spam).<br>" +
+        "También puede descargar una copia local del informe."
+      );
+      document.getElementById("btnReset").style.display = "inline-flex";
+      downloadReport(data);
+    } catch (err) {
+      console.error(err);
+      showStatus(
+        "error",
+        "<strong>No se pudo enviar el informe.</strong> " + escapeHtml(err.message || "Error de red") + ".<br>" +
+        "Compruebe la conexión y el correo de destino. Puede descargar el informe HTML como copia local."
+      );
+    } finally {
+      setSending(false);
+    }
+  });
+
+  document.getElementById("btnDescargar").addEventListener("click", function () {
+    // Soft validation: allow download even if incomplete, but warn
+    const data = collectData();
+    if (data.answers.some(a => a.answer === "no_conforme" || a.answer === "clear")) {
+      data.resultado = "NO APTO";
+    } else if (data.answers.every(a => a.answer) && data.answers.length === TOTAL) {
+      data.resultado = "APTO";
+    } else {
+      data.resultado = "PENDIENTE";
+    }
+    downloadReport(data);
+    showStatus("info", "Informe HTML descargado en su dispositivo.");
+  });
+
+  document.getElementById("btnReset").addEventListener("click", function () {
+    if (!confirm("¿Iniciar una nueva revisión? Se borrarán los datos del formulario actual.")) return;
+    document.getElementById("revisionForm").reset();
+    (function setToday() {
+      const d = new Date();
+      fechaInput.value = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+    })();
+    document.querySelectorAll(".check-item.error-item").forEach(el => el.classList.remove("error-item"));
+    document.querySelectorAll(".field-error.visible").forEach(el => el.classList.remove("visible"));
+    document.querySelectorAll("input.error, select.error, textarea.error").forEach(el => el.classList.remove("error"));
+    document.getElementById("btnReset").style.display = "none";
+    document.getElementById("statusMsg").className = "status-msg";
+    updateUI();
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  });
+
+  // Init
+  document.getElementById("progressText").textContent = `0 / ${TOTAL}`;
+  updateUI();
+})();
+  </script>
+</body>
+</html>
