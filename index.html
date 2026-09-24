@@ -1276,9 +1276,9 @@
       ${resText}
     </div>
     ${data.resultado !== "APTO" && data.resultado !== "PENDIENTE" ? `<p style="font-size:14px;color:#b91c1c"><strong>Retirada / señalización:</strong> ${data.retirada ? "Sí, confirmada" : "No confirmada"}</p>` : ""}
-    ${data.fotoDataUrl ? `<div style="margin:16px 0;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb">
+    ${data.fotoDataUrl ? `<div class="pdf-foto" style="margin:16px 0;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;page-break-inside:avoid;break-inside:avoid;-webkit-column-break-inside:avoid">
       <h2 style="font-size:16px;color:#247d9d;margin:0 0 8px">Foto de la escalera</h2>
-      <img src="${data.fotoDataUrl}" alt="Foto de la escalera ${escapeHtml(data.idEscalera)}" style="display:block;max-width:100%;height:auto;border-radius:6px;border:1px solid #e5e7eb" />
+      <img src="${data.fotoDataUrl}" alt="Foto de la escalera ${escapeHtml(data.idEscalera)}" style="display:block;max-width:100%;max-height:260px;width:auto;height:auto;object-fit:contain;margin:0 auto;border-radius:6px;border:1px solid #e5e7eb;page-break-inside:avoid;break-inside:avoid" />
       <p style="margin:8px 0 0;font-size:13px;color:#6b7280">Foto de la escalera — ${escapeHtml(data.fecha)} / ${escapeHtml(data.idEscalera)}</p>
     </div>` : ""}
     <h2 style="font-size:16px;color:#247d9d;border-bottom:2px solid #dff2f8;padding-bottom:6px">Checklist</h2>
@@ -1478,7 +1478,7 @@
           windowWidth: 794
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["css", "legacy"] }
+        pagebreak: { mode: ["avoid-all", "css", "legacy"], avoid: [".pdf-foto", "img"] }
       };
 
       return waitForImages(container).then(function () {
@@ -1666,7 +1666,7 @@
         const img = new Image();
         img.onerror = function () { reject(new Error("Imagen no válida.")); };
         img.onload = function () {
-          const maxEdge = 1280;
+          const maxEdge = 960;
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
           if (w > maxEdge || h > maxEdge) {
