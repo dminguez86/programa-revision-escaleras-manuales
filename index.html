@@ -431,6 +431,52 @@
       font-size: 0.9rem;
     }
 
+    .item-evidencia {
+      margin-top: 0.65rem;
+      padding-top: 0.55rem;
+      border-top: 1px dashed var(--gray-200);
+    }
+    .item-evidencia-label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--gray-700) !important;
+      margin-bottom: 0.35rem;
+    }
+    .item-evidencia-controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.45rem;
+      align-items: center;
+    }
+    .item-evidencia-controls input[type="file"] {
+      position: absolute;
+      width: 1px;
+      height: 1px;
+      opacity: 0;
+      overflow: hidden;
+    }
+    .item-evidencia-preview {
+      display: none;
+      margin-top: 0.5rem;
+    }
+    .item-evidencia-preview.visible { display: block; }
+    .item-evidencia-preview img {
+      display: block;
+      max-width: 100%;
+      max-height: 160px;
+      width: auto;
+      height: auto;
+      object-fit: contain;
+      border-radius: 8px;
+      border: 1px solid var(--gray-200);
+      background: #fff;
+    }
+    .item-evidencia-meta {
+      font-size: 0.75rem;
+      color: var(--gray-500);
+      margin-top: 0.25rem;
+    }
+
     .retirada-box {
       display: none;
       margin-top: 1rem;
@@ -884,6 +930,8 @@
 
   /** @type {string|null} compressed JPEG data URL of ladder photo */
   let fotoDataUrl = null;
+  /** @type {Object.<string, string>} evidence photos per checklist item id */
+  const itemEvidencePhotos = Object.create(null);
   /** @type {boolean} true when the signature canvas has strokes */
   let firmaHasInk = false;
 
@@ -991,6 +1039,18 @@
           `<label for="obs_${item.id}">Observaciones (obligatorio si No conforme / Defectuoso) <span class="req">*</span></label>` +
           `<textarea id="obs_${item.id}" name="obs_${item.id}" placeholder="Describa el defecto o incidencia…"></textarea>` +
           `<span class="field-error" id="err-obs_${item.id}">Indique observaciones para este punto no conforme.</span>` +
+          `<div class="item-evidencia">` +
+            `<span class="item-evidencia-label">Foto de evidencia <span style="font-weight:400;color:var(--gray-500)">(opcional)</span></span>` +
+            `<div class="item-evidencia-controls">` +
+              `<label for="evfoto_${item.id}" class="btn btn-secondary" id="evfoto_label_${item.id}" style="cursor:pointer;margin:0;min-height:2.5rem;padding:0.45rem 0.9rem;font-size:0.9rem">Tomar o elegir foto</label>` +
+              `<input type="file" id="evfoto_${item.id}" name="evfoto_${item.id}" accept="image/*" capture="environment" data-item-id="${item.id}" />` +
+              `<button type="button" class="btn btn-ghost" id="evfoto_clear_${item.id}" data-item-id="${item.id}" style="display:none;min-height:2.5rem;padding:0.45rem 0.9rem;font-size:0.9rem">Quitar foto</button>` +
+            `</div>` +
+            `<div class="item-evidencia-preview" id="evfoto_preview_${item.id}">` +
+              `<img id="evfoto_img_${item.id}" alt="Evidencia del punto ${item.id}" />` +
+              `<p class="item-evidencia-meta" id="evfoto_meta_${item.id}"></p>` +
+            `</div>` +
+          `</div>` +
         `</div>` +
         `<span class="field-error" id="err-item_${item.id}">Seleccione una opción.</span>`;
       list.appendChild(div);
@@ -1084,7 +1144,7 @@
       clearFieldError("retirada");
     }
 
-    // Show/hide per-item obs
+    // Show/hide per-item obs + evidence photo
     allItems.forEach(item => {
       const a = getAnswer(item.id);
       const wrap = document.getElementById("obs_wrap_" + item.id);
@@ -1093,6 +1153,7 @@
       } else {
         wrap.classList.remove("visible");
         clearFieldError("obs_" + item.id);
+        clearItemEvidence(item.id);
       }
     });
   }
@@ -1152,7 +1213,8 @@
       text: item.text,
       answer: getAnswer(item.id),
       answerLabel: LABEL_MAP[getAnswer(item.id)] || "—",
-      obs: getItemObs(item.id)
+      obs: getItemObs(item.id),
+      evidenciaDataUrl: itemEvidencePhotos[item.id] || null
     }));
     return {
       revisor: document.getElementById("revisor").value.trim(),
@@ -1299,13 +1361,22 @@
       const color = a.answer === "conforme" ? "#4f8f25"
         : (a.answer === "no_conforme" || a.answer === "clear") ? "#b91c1c"
         : a.answer === "na" ? "#b45309" : "#6b7280";
-      const obsRow = a.obs
-        ? `<tr><td colspan="2" style="padding:4px 8px 10px 24px;font-size:13px;color:#3d4450;background:#f9fafb"><em>Obs.:</em> ${escapeHtml(a.obs)}</td></tr>`
+      const obsPart = a.obs
+        ? `<div style="margin-bottom:6px"><em>Obs.:</em> ${escapeHtml(a.obs)}</div>`
+        : "";
+      const fotoPart = a.evidenciaDataUrl
+        ? `<div class="pdf-evidencia" style="page-break-inside:avoid;break-inside:avoid;margin-top:6px">
+            <img src="${a.evidenciaDataUrl}" alt="Evidencia ${escapeHtml(a.id)}" style="display:block;max-width:100%;max-height:180px;width:auto;height:auto;object-fit:contain;border-radius:6px;border:1px solid #e5e7eb;background:#fff;page-break-inside:avoid" />
+            <div style="font-size:11px;color:#6b7280;margin-top:4px">Foto de evidencia — punto ${escapeHtml(a.id)}</div>
+          </div>`
+        : "";
+      const detailRow = (obsPart || fotoPart)
+        ? `<tr><td colspan="2" style="padding:4px 8px 12px 24px;font-size:13px;color:#3d4450;background:#f9fafb;border-bottom:1px solid #e5e7eb">${obsPart}${fotoPart}</td></tr>`
         : "";
       return `<tr>
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-size:14px">${escapeHtml(a.id)} — ${escapeHtml(a.text)}</td>
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${color};white-space:nowrap">${escapeHtml(a.answerLabel)}</td>
-      </tr>${obsRow}`;
+      </tr>${detailRow}`;
     }).join("");
 
     const resColor = data.resultado === "APTO" ? "#4f8f25" : data.resultado === "PENDIENTE" ? "#b45309" : "#b91c1c";
@@ -1547,7 +1618,7 @@
           windowWidth: 794
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"], avoid: [".pdf-foto", ".pdf-firma", "img"] }
+        pagebreak: { mode: ["avoid-all", "css", "legacy"], avoid: [".pdf-foto", ".pdf-firma", ".pdf-evidencia", "img"] }
       };
 
       return waitForImages(container).then(function () {
@@ -1694,6 +1765,7 @@
     document.getElementById("btnReset").style.display = "none";
     document.getElementById("statusMsg").className = "status-msg";
     clearFoto();
+    clearAllItemEvidence();
     clearFirma();
     updateUI();
     window.scrollTo({ top: 0, behavior: "smooth" });
@@ -1839,6 +1911,76 @@
   });
 
 
+
+  function clearItemEvidence(itemId) {
+    if (itemEvidencePhotos[itemId]) delete itemEvidencePhotos[itemId];
+    const input = document.getElementById("evfoto_" + itemId);
+    if (input) input.value = "";
+    const preview = document.getElementById("evfoto_preview_" + itemId);
+    const img = document.getElementById("evfoto_img_" + itemId);
+    const meta = document.getElementById("evfoto_meta_" + itemId);
+    const btnClear = document.getElementById("evfoto_clear_" + itemId);
+    const label = document.getElementById("evfoto_label_" + itemId);
+    if (preview) preview.classList.remove("visible");
+    if (img) img.removeAttribute("src");
+    if (meta) meta.textContent = "";
+    if (btnClear) btnClear.style.display = "none";
+    if (label) label.textContent = "Tomar o elegir foto";
+  }
+
+  function clearAllItemEvidence() {
+    Object.keys(itemEvidencePhotos).forEach(function (id) { delete itemEvidencePhotos[id]; });
+    allItems.forEach(function (item) { clearItemEvidence(item.id); });
+  }
+
+  function showItemEvidence(itemId, dataUrl, infoText) {
+    itemEvidencePhotos[itemId] = dataUrl;
+    const preview = document.getElementById("evfoto_preview_" + itemId);
+    const img = document.getElementById("evfoto_img_" + itemId);
+    const meta = document.getElementById("evfoto_meta_" + itemId);
+    const btnClear = document.getElementById("evfoto_clear_" + itemId);
+    const label = document.getElementById("evfoto_label_" + itemId);
+    if (img) img.src = dataUrl;
+    if (meta) meta.textContent = infoText || "Evidencia lista para el informe.";
+    if (preview) preview.classList.add("visible");
+    if (btnClear) btnClear.style.display = "inline-flex";
+    if (label) label.textContent = "Cambiar foto";
+  }
+
+  document.getElementById("checklistSections").addEventListener("change", function (e) {
+    const input = e.target;
+    if (!input.matches('input[type="file"][id^="evfoto_"]')) return;
+    const itemId = input.getAttribute("data-item-id") || input.id.replace(/^evfoto_/, "");
+    const file = input.files && input.files[0];
+    if (!file) return;
+    if (!file.type || file.type.indexOf("image/") !== 0) {
+      showStatus("error", "Seleccione un archivo de imagen válido para la evidencia.");
+      input.value = "";
+      return;
+    }
+    showStatus("info", "Procesando foto de evidencia (" + itemId + ")…");
+    compressImageFile(file, 800).then(function (res) {
+      showItemEvidence(
+        itemId,
+        res.dataUrl,
+        "Evidencia " + itemId + " (" + res.width + "×" + res.height + " px). Se incluirá en el PDF."
+      );
+      showStatus("info", "Foto de evidencia del punto " + itemId + " añadida.");
+    }).catch(function () {
+      clearItemEvidence(itemId);
+      showStatus("error", "No se pudo procesar la foto de evidencia. Pruebe con otra.");
+    });
+  });
+
+  document.getElementById("checklistSections").addEventListener("click", function (e) {
+    const btn = e.target.closest('button[id^="evfoto_clear_"]');
+    if (!btn) return;
+    const itemId = btn.getAttribute("data-item-id") || btn.id.replace(/^evfoto_clear_/, "");
+    clearItemEvidence(itemId);
+    showStatus("info", "Foto de evidencia del punto " + itemId + " eliminada.");
+  });
+
+
   function clearFoto() {
     fotoDataUrl = null;
     const input = document.getElementById("fotoEscalera");
@@ -1868,7 +2010,7 @@
     label.textContent = "Cambiar foto";
   }
 
-  function compressImageFile(file) {
+  function compressImageFile(file, maxEdgeOpt) {
     return new Promise(function (resolve, reject) {
       const reader = new FileReader();
       reader.onerror = function () { reject(new Error("No se pudo leer la imagen.")); };
@@ -1876,7 +2018,7 @@
         const img = new Image();
         img.onerror = function () { reject(new Error("Imagen no válida.")); };
         img.onload = function () {
-          const maxEdge = 960;
+          const maxEdge = maxEdgeOpt || 960;
           let w = img.naturalWidth || img.width;
           let h = img.naturalHeight || img.height;
           if (w > maxEdge || h > maxEdge) {
