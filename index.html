@@ -498,6 +498,39 @@
       margin-top: 0.35rem;
     }
 
+    .firma-box { margin-top: 0.35rem; }
+    .firma-canvas-wrap {
+      position: relative;
+      border: 2px dashed var(--gray-300);
+      border-radius: 10px;
+      background: #fff;
+      overflow: hidden;
+      touch-action: none;
+    }
+    .firma-canvas-wrap.has-ink {
+      border-style: solid;
+      border-color: #247d9d;
+    }
+    .firma-canvas-wrap.error { border-color: var(--red-700); }
+    #firmaCanvas {
+      display: block;
+      width: 100%;
+      height: 160px;
+      cursor: crosshair;
+      touch-action: none;
+      background:
+        linear-gradient(transparent 78%, #e5e7eb 78%, #e5e7eb 79%, transparent 79%),
+        #fff;
+    }
+    .firma-actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+      margin-top: 0.5rem;
+      align-items: center;
+    }
+    .firma-hint { font-size: 0.8rem; color: var(--gray-500); }
+
     .retirada-box input[type="checkbox"] {
       width: 1.35rem;
       height: 1.35rem;
@@ -801,11 +834,29 @@
         </div>
       </section>
 
+      <section class="card" id="sec-firma">
+        <h2><span class="section-num">8</span> Firma del revisor/a</h2>
+        <div class="form-group">
+          <label>Firma de quien realiza la revisión <span class="req">*</span></label>
+          <p class="firma-hint" style="margin:0 0 0.5rem">Firme con el dedo o el ratón dentro del recuadro. La firma aparecerá en el PDF del informe.</p>
+          <div class="firma-box">
+            <div class="firma-canvas-wrap" id="firmaWrap">
+              <canvas id="firmaCanvas" width="640" height="160" aria-label="Área de firma del revisor"></canvas>
+            </div>
+            <div class="firma-actions">
+              <button type="button" class="btn btn-ghost" id="btnBorrarFirma">Borrar firma</button>
+              <span class="firma-hint" id="firmaStatus">Sin firmar</span>
+            </div>
+            <span class="field-error" id="err-firma">Firme en el recuadro antes de enviar o descargar el informe.</span>
+          </div>
+        </div>
+      </section>
+
       <section class="card" id="sec-envio">
         <h2><span class="section-num">✉</span> Envío del informe</h2>
         <p style="margin:0 0 1rem;font-size:0.9rem;color:var(--gray-500)">
           Al pulsar <strong>Enviar informe</strong> se generará y descargará un <strong>PDF</strong> del informe y se abrirá la aplicación de correo del dispositivo con el destinatario, el asunto y un resumen. Debe <strong>adjuntar el PDF descargado</strong> al mensaje y pulsar <strong>Enviar</strong> en esa aplicación.
-          Si ha añadido una foto, está incluida en el PDF. En móviles compatibles también podrá compartir el PDF con otras apps.
+          Si ha añadido una foto, está incluida en el PDF. La firma del revisor también. En móviles compatibles también podrá compartir el PDF con otras apps.
           La generación del PDF necesita conexión a Internet (biblioteca desde CDN); use la app en HTTPS (p. ej. Render) o con red disponible.
         </p>
         <div class="actions">
@@ -833,6 +884,8 @@
 
   /** @type {string|null} compressed JPEG data URL of ladder photo */
   let fotoDataUrl = null;
+  /** @type {boolean} true when the signature canvas has strokes */
+  let firmaHasInk = false;
 
 
   const SECTIONS = [
@@ -1113,6 +1166,7 @@
       retirada: document.getElementById("retiradaConfirm").checked,
       answers,
       fotoDataUrl: fotoDataUrl || null,
+      firmaDataUrl: getFirmaDataUrl(),
       timestamp: new Date().toISOString(),
       timestampLocal: new Date().toLocaleString("es-ES", { timeZone: "Europe/Madrid" })
     };
@@ -1171,6 +1225,13 @@
         const el = document.querySelector(`.check-item[data-item-id="${unanswered.id}"]`);
         firstError = el;
       }
+    }
+
+    if (!firmaHasInk) {
+      showFieldError("firma");
+      const wrap = document.getElementById("firmaWrap");
+      if (wrap) wrap.classList.add("error");
+      if (!firstError) firstError = document.getElementById("firmaCanvas");
     }
 
     return firstError;
@@ -1284,6 +1345,14 @@
     <h2 style="font-size:16px;color:#247d9d;border-bottom:2px solid #dff2f8;padding-bottom:6px">Checklist</h2>
     <table style="width:100%;border-collapse:collapse">${rows}</table>
     ${data.obsGenerales ? `<h2 style="font-size:16px;color:#247d9d;margin-top:20px">Observaciones generales</h2><p style="font-size:14px;white-space:pre-wrap">${escapeHtml(data.obsGenerales)}</p>` : ""}
+    <div class="pdf-firma" style="margin-top:24px;padding:14px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;page-break-inside:avoid;break-inside:avoid">
+      <h2 style="font-size:16px;color:#247d9d;margin:0 0 8px">Firma del revisor/a</h2>
+      <p style="margin:0 0 10px;font-size:13px;color:#6b7280">${escapeHtml(data.revisor)} · ${escapeHtml(data.fecha)}</p>
+      ${data.firmaDataUrl
+        ? `<img src="${data.firmaDataUrl}" alt="Firma de ${escapeHtml(data.revisor)}" style="display:block;max-width:100%;max-height:110px;width:auto;height:auto;object-fit:contain;margin:0 auto;background:#fff;border:1px solid #e5e7eb;border-radius:6px;page-break-inside:avoid" />`
+        : `<div style="height:90px;border:1px dashed #9ca3af;border-radius:6px;background:#fff"></div>`}
+      <p style="margin:10px 0 0;font-size:12px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:8px;text-align:center">Firma manuscrita de quien realiza la revisión</p>
+    </div>
     <p style="margin-top:24px;font-size:11px;color:#6b7280;border-top:1px solid #e5e7eb;padding-top:12px">
       Documento de control interno. No sustituye las instrucciones del fabricante.<br>
       Referencias: RD 2177/2004 · UNE-EN 131 · INSST / AFESPO<br>
@@ -1478,7 +1547,7 @@
           windowWidth: 794
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"], avoid: [".pdf-foto", "img"] }
+        pagebreak: { mode: ["avoid-all", "css", "legacy"], avoid: [".pdf-foto", ".pdf-firma", "img"] }
       };
 
       return waitForImages(container).then(function () {
@@ -1625,9 +1694,150 @@
     document.getElementById("btnReset").style.display = "none";
     document.getElementById("statusMsg").className = "status-msg";
     clearFoto();
+    clearFirma();
     updateUI();
     window.scrollTo({ top: 0, behavior: "smooth" });
   });
+
+
+  // —— Firma del revisor (canvas) ——
+  const firmaCanvas = document.getElementById("firmaCanvas");
+  const firmaWrap = document.getElementById("firmaWrap");
+  const firmaCtx = firmaCanvas ? firmaCanvas.getContext("2d") : null;
+  let firmaDrawing = false;
+  let firmaLastX = 0;
+  let firmaLastY = 0;
+
+  function resizeFirmaCanvas() {
+    if (!firmaCanvas || !firmaCtx) return;
+    const rect = firmaCanvas.getBoundingClientRect();
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const cssW = Math.max(280, Math.floor(rect.width) || 640);
+    const cssH = 160;
+    const prev = firmaHasInk ? firmaCanvas.toDataURL("image/png") : null;
+    firmaCanvas.width = Math.floor(cssW * dpr);
+    firmaCanvas.height = Math.floor(cssH * dpr);
+    firmaCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    firmaCtx.lineCap = "round";
+    firmaCtx.lineJoin = "round";
+    firmaCtx.strokeStyle = "#111827";
+    firmaCtx.lineWidth = 2.25;
+    if (prev) {
+      const img = new Image();
+      img.onload = function () { firmaCtx.drawImage(img, 0, 0, cssW, cssH); };
+      img.src = prev;
+    }
+  }
+
+  function firmaPos(e) {
+    const rect = firmaCanvas.getBoundingClientRect();
+    const src = (e.touches && e.touches[0]) || (e.changedTouches && e.changedTouches[0]) || e;
+    return { x: src.clientX - rect.left, y: src.clientY - rect.top };
+  }
+
+  function markFirmaInk() {
+    if (firmaHasInk) return;
+    firmaHasInk = true;
+    if (firmaWrap) firmaWrap.classList.add("has-ink");
+    const st = document.getElementById("firmaStatus");
+    if (st) st.textContent = "Firmado";
+    clearFieldError("firma");
+    if (firmaWrap) firmaWrap.classList.remove("error");
+  }
+
+  function firmaStart(e) {
+    if (!firmaCtx) return;
+    e.preventDefault();
+    firmaDrawing = true;
+    const p = firmaPos(e);
+    firmaLastX = p.x;
+    firmaLastY = p.y;
+    firmaCtx.beginPath();
+    firmaCtx.moveTo(firmaLastX, firmaLastY);
+    clearFieldError("firma");
+    if (firmaWrap) firmaWrap.classList.remove("error");
+  }
+
+  function firmaMove(e) {
+    if (!firmaDrawing || !firmaCtx) return;
+    e.preventDefault();
+    const p = firmaPos(e);
+    firmaCtx.beginPath();
+    firmaCtx.moveTo(firmaLastX, firmaLastY);
+    firmaCtx.lineTo(p.x, p.y);
+    firmaCtx.stroke();
+    firmaLastX = p.x;
+    firmaLastY = p.y;
+    markFirmaInk();
+  }
+
+  function firmaEnd(e) {
+    if (!firmaDrawing) return;
+    if (e) e.preventDefault();
+    firmaDrawing = false;
+  }
+
+  function clearFirma() {
+    if (!firmaCanvas || !firmaCtx) return;
+    firmaHasInk = false;
+    if (firmaWrap) {
+      firmaWrap.classList.remove("has-ink");
+      firmaWrap.classList.remove("error");
+    }
+    const st = document.getElementById("firmaStatus");
+    if (st) st.textContent = "Sin firmar";
+    clearFieldError("firma");
+    resizeFirmaCanvas();
+  }
+
+  function getFirmaDataUrl() {
+    if (!firmaHasInk || !firmaCanvas) return null;
+    try {
+      const exportCanvas = document.createElement("canvas");
+      const w = firmaCanvas.clientWidth || 640;
+      const h = firmaCanvas.clientHeight || 160;
+      exportCanvas.width = w;
+      exportCanvas.height = h;
+      const ex = exportCanvas.getContext("2d");
+      ex.fillStyle = "#ffffff";
+      ex.fillRect(0, 0, w, h);
+      ex.drawImage(firmaCanvas, 0, 0, w, h);
+      return exportCanvas.toDataURL("image/png");
+    } catch (_) {
+      return firmaCanvas.toDataURL("image/png");
+    }
+  }
+
+  if (firmaCanvas) {
+    resizeFirmaCanvas();
+    window.addEventListener("resize", function () {
+      clearTimeout(window.__firmaResizeT);
+      window.__firmaResizeT = setTimeout(resizeFirmaCanvas, 150);
+    });
+    if (window.PointerEvent) {
+      firmaCanvas.addEventListener("pointerdown", function (e) {
+        try { firmaCanvas.setPointerCapture(e.pointerId); } catch (_) {}
+        firmaStart(e);
+      });
+      firmaCanvas.addEventListener("pointermove", firmaMove);
+      firmaCanvas.addEventListener("pointerup", firmaEnd);
+      firmaCanvas.addEventListener("pointercancel", firmaEnd);
+    } else {
+      firmaCanvas.addEventListener("mousedown", firmaStart);
+      firmaCanvas.addEventListener("mousemove", firmaMove);
+      window.addEventListener("mouseup", firmaEnd);
+      firmaCanvas.addEventListener("mouseleave", firmaEnd);
+      firmaCanvas.addEventListener("touchstart", firmaStart, { passive: false });
+      firmaCanvas.addEventListener("touchmove", firmaMove, { passive: false });
+      firmaCanvas.addEventListener("touchend", firmaEnd, { passive: false });
+      firmaCanvas.addEventListener("touchcancel", firmaEnd, { passive: false });
+    }
+  }
+
+  document.getElementById("btnBorrarFirma").addEventListener("click", function () {
+    clearFirma();
+  });
+
 
   function clearFoto() {
     fotoDataUrl = null;
