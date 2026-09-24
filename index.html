@@ -774,7 +774,7 @@
       </section>
 
       <div class="legend" aria-hidden="true">
-        <span class="l-clear">Clear (defectuoso / no usable)</span>
+        <span class="l-clear">Defectuoso (no usable)</span>
         <span class="l-ok">Conforme</span>
         <span class="l-ko">No conforme</span>
         <span class="l-na">No aplica</span>
@@ -897,14 +897,14 @@
   ];
 
   const OPTS = [
-    { value: "clear", label: "Clear", cls: "opt-clear" },
+    { value: "clear", label: "Defectuoso", cls: "opt-clear" },
     { value: "conforme", label: "Conforme", cls: "opt-conforme" },
     { value: "no_conforme", label: "No conforme", cls: "opt-no-conforme" },
     { value: "na", label: "No aplica", cls: "opt-na" }
   ];
 
   const LABEL_MAP = {
-    clear: "Clear",
+    clear: "Defectuoso",
     conforme: "Conforme",
     no_conforme: "No conforme",
     na: "No aplica"
@@ -935,7 +935,7 @@
         `<div class="check-question"><strong>${item.id}</strong> — ${item.text}${hint}</div>` +
         `<div class="seg-control" role="radiogroup" aria-label="${item.text}">${radios}</div>` +
         `<div class="item-obs" id="obs_wrap_${item.id}">` +
-          `<label for="obs_${item.id}">Observaciones (obligatorio si No conforme / Clear) <span class="req">*</span></label>` +
+          `<label for="obs_${item.id}">Observaciones (obligatorio si No conforme / Defectuoso) <span class="req">*</span></label>` +
           `<textarea id="obs_${item.id}" name="obs_${item.id}" placeholder="Describa el defecto o incidencia…"></textarea>` +
           `<span class="field-error" id="err-obs_${item.id}">Indique observaciones para este punto no conforme.</span>` +
         `</div>` +
@@ -1326,7 +1326,7 @@
       "Generado: " + data.timestampLocal,
       "",
       "Conteo checklist: " + c.conforme + " conforme, " +
-        (c.noConforme + c.clear) + " no conforme/clear, " + c.na + " N/A (total " + data.answers.length + ").",
+        (c.noConforme + c.clear) + " no conforme/defectuoso, " + c.na + " N/A (total " + data.answers.length + ").",
       ""
     ];
     if (data.obsGenerales) {
