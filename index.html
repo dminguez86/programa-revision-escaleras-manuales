@@ -1586,8 +1586,9 @@
         "position:fixed",
         "left:0",
         "top:0",
-        "width:794px",
-        "max-width:100%",
+        "width:720px",
+        "min-width:720px",
+        "max-width:none",
         "margin:0",
         "padding:0",
         "background:#ffffff",
@@ -1598,7 +1599,7 @@
       ].join(";");
 
       var container = document.createElement("div");
-      container.style.cssText = "width:720px;max-width:100%;margin:0 auto;padding:8px;background:#ffffff;box-sizing:border-box;";
+      container.style.cssText = "width:720px;min-width:720px;max-width:none;margin:0;padding:8px;background:#ffffff;box-sizing:border-box;";
       container.innerHTML = inner;
       host.appendChild(container);
       document.body.appendChild(host);
@@ -1615,7 +1616,10 @@
           backgroundColor: "#ffffff",
           scrollX: 0,
           scrollY: 0,
-          windowWidth: 794
+          x: 0,
+          y: 0,
+          width: 720,
+          windowWidth: 720
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
         pagebreak: { mode: ["avoid-all", "css", "legacy"], avoid: [".pdf-foto", ".pdf-firma", ".pdf-evidencia", "img"] }
