@@ -188,6 +188,12 @@
       border-color: var(--green-700);
     }
 
+    .resultado-badge.obs {
+      background: #fef3c7;
+      color: #b45309;
+      border-color: #b45309;
+    }
+
     .resultado-badge.no-apto {
       background: var(--red-100);
       color: var(--red-700);
@@ -607,6 +613,34 @@
       border: 2px solid var(--red-700);
     }
 
+    .resultado-display.obs {
+      background: #fef3c7;
+      color: #b45309;
+      border: 2px solid #b45309;
+    }
+
+    .crit-tag {
+      display: inline-block;
+      margin-left: 0.4rem;
+      padding: 0.05rem 0.45rem;
+      font-size: 0.7rem;
+      font-weight: 700;
+      border-radius: 999px;
+      background: var(--red-100);
+      color: var(--red-700);
+      vertical-align: middle;
+    }
+    .result-legend {
+      font-size: 0.85rem;
+      line-height: 1.45;
+      margin: 0 0 1rem;
+      padding: 0.75rem 1rem;
+      background: #f9fafb;
+      border: 1px solid var(--gray-200);
+      border-radius: 8px;
+    }
+    .result-legend p { margin: 0.2rem 0; }
+
     .resultado-display.pendiente {
       background: var(--gray-100);
       color: var(--gray-500);
@@ -868,6 +902,11 @@
           <label for="obsGenerales">Observaciones generales</label>
           <textarea id="obsGenerales" name="obsGenerales" placeholder="Añada comentarios adicionales si procede…"></textarea>
         </div>
+        <div class="result-legend">
+          <p><strong style="color:#4f8f25">APTO</strong>: todos los puntos conformes (o no aplica).</p>
+          <p><strong style="color:#b45309">APTO CON OBSERVACIONES</strong>: solo fallan puntos no críticos. Puede seguir usándose; corregir lo indicado.</p>
+          <p><strong style="color:#b91c1c">NO APTO / RETIRAR DE USO</strong>: falla algún punto marcado como <span class="crit-tag" style="margin-left:0">Crítico</span>. Retirar o señalizar la escalera.</p>
+        </div>
         <div class="resultado-display pendiente" id="resultadoDisplay" aria-live="polite">RESULTADO: PENDIENTE</div>
         <div class="retirada-box" id="retiradaBox">
           <label>
@@ -941,9 +980,9 @@
       id: 1,
       title: "Identificación y marcado",
       items: [
-        { id: "1.1", text: "Etiqueta / marcado del fabricante legible", hint: "Carga máxima, norma EN 131, etc." },
-        { id: "1.2", text: "Identificación interna de la empresa visible" },
-        { id: "1.3", text: "Instrucciones de uso disponibles o conocidas" }
+        { id: "1.1", critical: false, text: "Etiqueta / marcado del fabricante legible", hint: "Carga máxima, norma EN 131, etc." },
+        { id: "1.2", critical: false, text: "Identificación interna de la empresa visible" },
+        { id: "1.3", critical: false, text: "Instrucciones de uso disponibles o conocidas" }
       ]
     },
     {
@@ -962,7 +1001,7 @@
       items: [
         { id: "3.1", text: "Peldaños completos, sin roturas, grietas ni deformaciones" },
         { id: "3.2", text: "Bien fijados y alineados (horizontales)" },
-        { id: "3.3", text: "Superficie limpia, sin grasa, aceite ni residuales resbaladizos" },
+        { id: "3.3", critical: false, text: "Superficie limpia, sin grasa, aceite ni residuales resbaladizos" },
         { id: "3.4", text: "Antideslizante de peldaños en buen estado", hint: "Si aplica" }
       ]
     },
@@ -991,7 +1030,7 @@
       title: "Estado general y limpieza",
       items: [
         { id: "6.1", text: "Sin elementos sueltos, faltantes o improvisados" },
-        { id: "6.2", text: "Limpieza general adecuada para inspección visual" },
+        { id: "6.2", critical: false, text: "Limpieza general adecuada para inspección visual" },
         { id: "6.3", text: "Sin reparaciones deficientes o no autorizadas" }
       ]
     }
@@ -1013,6 +1052,17 @@
 
   const allItems = SECTIONS.flatMap(s => s.items);
   const TOTAL = allItems.length;
+  const isCritical = item => item.critical !== false;
+  const CRIT_MAP = {};
+  allItems.forEach(it => { CRIT_MAP[it.id] = isCritical(it); });
+  const isFail = a => a === "no_conforme" || a === "clear";
+  function resultadoFromAnswers(answers, complete) {
+    const critFail = answers.some(a => isFail(a.answer) && CRIT_MAP[a.id]);
+    const minorFail = answers.some(a => isFail(a.answer) && !CRIT_MAP[a.id]);
+    if (critFail) return "NO APTO";
+    if (!complete) return "PENDIENTE";
+    return minorFail ? "APTO CON OBSERVACIONES" : "APTO";
+  }
 
   // Build checklist DOM
   const container = document.getElementById("checklistSections");
@@ -1033,7 +1083,7 @@
         `<label for="item_${item.id}_${o.value}" class="${o.cls}">${o.label}</label>`
       ).join("");
       div.innerHTML =
-        `<div class="check-question"><strong>${item.id}</strong> — ${item.text}${hint}</div>` +
+        `<div class="check-question"><strong>${item.id}</strong> — ${item.text}${isCritical(item) ? '<span class="crit-tag" title="Si falla, la escalera es NO APTA">Crítico</span>' : ""}${hint}</div>` +
         `<div class="seg-control" role="radiogroup" aria-label="${item.text}">${radios}</div>` +
         `<div class="item-obs" id="obs_wrap_${item.id}">` +
           `<label for="obs_${item.id}">Observaciones (obligatorio si No conforme / Defectuoso) <span class="req">*</span></label>` +
@@ -1082,23 +1132,27 @@
   function computeResultado() {
     let answered = 0;
     let hasFail = false;
+    let critFail = false;
     let incomplete = false;
     allItems.forEach(item => {
       const a = getAnswer(item.id);
       if (a) {
         answered++;
-        if (a === "no_conforme" || a === "clear") hasFail = true;
+        if (a === "no_conforme" || a === "clear") {
+          hasFail = true;
+          if (isCritical(item)) critFail = true;
+        }
       } else {
         incomplete = true;
       }
     });
     let resultado = "PENDIENTE";
     if (!incomplete && answered === TOTAL) {
-      resultado = hasFail ? "NO APTO" : "APTO";
-    } else if (hasFail) {
-      resultado = "NO APTO"; // provisional if any fail already marked
+      resultado = critFail ? "NO APTO" : (hasFail ? "APTO CON OBSERVACIONES" : "APTO");
+    } else if (critFail) {
+      resultado = "NO APTO"; // provisional if any critical fail already marked
     }
-    return { answered, total: TOTAL, resultado, hasFail, incomplete };
+    return { answered, total: TOTAL, resultado, hasFail, critFail, incomplete };
   }
 
   function updateUI() {
@@ -1119,6 +1173,11 @@
       display.classList.add("apto");
       sticky.textContent = "APTO";
       display.textContent = "RESULTADO: APTO PARA EL USO";
+    } else if (resultado === "APTO CON OBSERVACIONES") {
+      sticky.classList.add("obs");
+      display.classList.add("obs");
+      sticky.textContent = "APTO CON OBS.";
+      display.textContent = "RESULTADO: APTO CON OBSERVACIONES — corregir los puntos indicados";
     } else if (resultado === "NO APTO") {
       sticky.classList.add("no-apto");
       display.classList.add("no-apto");
@@ -1134,9 +1193,7 @@
     }
 
     const retiradaBox = document.getElementById("retiradaBox");
-    if (resultado === "NO APTO" && !incomplete) {
-      retiradaBox.classList.add("visible");
-    } else if (hasFail) {
+    if (resultado === "NO APTO") {
       retiradaBox.classList.add("visible");
     } else {
       retiradaBox.classList.remove("visible");
@@ -1206,11 +1263,12 @@
   }
 
   function collectData() {
-    const { resultado, hasFail } = computeResultado();
-    const finalResultado = hasFail ? "NO APTO" : (resultado === "APTO" ? "APTO" : resultado);
+    const { resultado } = computeResultado();
+    const finalResultado = resultado;
     const answers = allItems.map(item => ({
       id: item.id,
       text: item.text,
+      critical: isCritical(item),
       answer: getAnswer(item.id),
       answerLabel: LABEL_MAP[getAnswer(item.id)] || "—",
       obs: getItemObs(item.id),
@@ -1271,9 +1329,8 @@
       }
     });
 
-    const { resultado, hasFail, incomplete } = computeResultado();
-    const needsRetirada = hasFail && !incomplete;
-    if (needsRetirada || (resultado === "NO APTO" && !incomplete)) {
+    const { resultado, incomplete } = computeResultado();
+    if (resultado === "NO APTO") {
       if (!document.getElementById("retiradaConfirm").checked) {
         showFieldError("retirada");
         if (!firstError) firstError = document.getElementById("retiradaConfirm");
@@ -1375,14 +1432,15 @@
         : "";
       return `<tr>
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-size:14px">${escapeHtml(a.id)} — ${escapeHtml(a.text)}</td>
-        <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${color};white-space:nowrap">${escapeHtml(a.answerLabel)}</td>
+        <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${color};white-space:nowrap">${escapeHtml(a.answerLabel)}${(a.answer === "no_conforme" || a.answer === "clear") ? `<div style="font-size:11px;font-weight:700;color:${a.critical === false ? "#b45309" : "#b91c1c"}">${a.critical === false ? "No crítico" : "CRÍTICO"}</div>` : ""}</td>
       </tr>${detailRow}`;
     }).join("");
 
-    const resColor = data.resultado === "APTO" ? "#4f8f25" : data.resultado === "PENDIENTE" ? "#b45309" : "#b91c1c";
-    const resBg = data.resultado === "APTO" ? "#e8f5e0" : data.resultado === "PENDIENTE" ? "#fef3c7" : "#fee2e2";
+    const resColor = data.resultado === "APTO" ? "#4f8f25" : (data.resultado === "PENDIENTE" || data.resultado === "APTO CON OBSERVACIONES") ? "#b45309" : "#b91c1c";
+    const resBg = data.resultado === "APTO" ? "#e8f5e0" : (data.resultado === "PENDIENTE" || data.resultado === "APTO CON OBSERVACIONES") ? "#fef3c7" : "#fee2e2";
     const resText = data.resultado === "APTO" ? "APTO PARA EL USO"
       : data.resultado === "PENDIENTE" ? "PENDIENTE (checklist incompleto)"
+      : data.resultado === "APTO CON OBSERVACIONES" ? "APTO CON OBSERVACIONES — corregir los puntos indicados"
       : "NO APTO / RETIRAR DE USO";
 
     const logoSrc = logoDataUrl || "logo-previjob.png";
@@ -1407,7 +1465,7 @@
     <div style="background:${resBg};color:${resColor};border:2px solid ${resColor};padding:12px;text-align:center;font-weight:800;font-size:18px;border-radius:8px;margin-bottom:16px">
       ${resText}
     </div>
-    ${data.resultado !== "APTO" && data.resultado !== "PENDIENTE" ? `<p style="font-size:14px;color:#b91c1c"><strong>Retirada / señalización:</strong> ${data.retirada ? "Sí, confirmada" : "No confirmada"}</p>` : ""}
+    ${data.resultado === "NO APTO" ? `<p style="font-size:14px;color:#b91c1c"><strong>Retirada / señalización:</strong> ${data.retirada ? "Sí, confirmada" : "No confirmada"}</p>` : ""}
     ${data.fotoDataUrl ? `<div class="pdf-foto" style="margin:16px 0;padding:12px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;page-break-inside:avoid;break-inside:avoid;-webkit-column-break-inside:avoid">
       <h2 style="font-size:16px;color:#247d9d;margin:0 0 8px">Foto de la escalera</h2>
       <img src="${data.fotoDataUrl}" alt="Foto de la escalera ${escapeHtml(data.idEscalera)}" style="display:block;max-width:100%;max-height:260px;width:auto;height:auto;object-fit:contain;margin:0 auto;border-radius:6px;border:1px solid #e5e7eb;page-break-inside:avoid;break-inside:avoid" />
@@ -1457,7 +1515,10 @@
     const filename = reportFilename(data);
     const lines = [
       "REVISIÓN DE ESCALERAS MANUALES (resumen)",
-      "Resultado: " + (data.resultado === "APTO" ? "APTO PARA EL USO" : "NO APTO / RETIRAR DE USO"),
+      "Resultado: " + (data.resultado === "APTO" ? "APTO PARA EL USO"
+        : data.resultado === "APTO CON OBSERVACIONES" ? "APTO CON OBSERVACIONES - corregir los puntos indicados"
+        : data.resultado === "PENDIENTE" ? "PENDIENTE (checklist incompleto)"
+        : "NO APTO / RETIRAR DE USO"),
       "Revisor/a: " + data.revisor,
       "Fecha: " + data.fecha,
       "Escalera: " + data.idEscalera,
@@ -1472,7 +1533,13 @@
     if (data.obsGenerales) {
       lines.push("Observaciones generales:", data.obsGenerales, "");
     }
-    if (data.resultado !== "APTO") {
+    const fallos = data.answers.filter(a => a.answer === "no_conforme" || a.answer === "clear");
+    if (fallos.length) {
+      lines.push("Puntos con incidencia:");
+      fallos.forEach(a => lines.push("- " + a.id + " (" + (a.critical === false ? "no crítico" : "CRÍTICO") + "): " + a.answerLabel + (a.obs ? " - " + a.obs : "")));
+      lines.push("");
+    }
+    if (data.resultado === "NO APTO") {
       lines.push("Retirada/señalización: " + (data.retirada ? "Sí" : "No"), "");
     }
     if (data.fotoDataUrl) {
@@ -1490,7 +1557,7 @@
 
   function openMailto(data) {
     const subject = "Informe revisión escalera " + data.idEscalera + " — " +
-      (data.resultado === "APTO" ? "APTO" : "NO APTO");
+      (data.resultado === "APTO" ? "APTO" : data.resultado === "APTO CON OBSERVACIONES" ? "APTO CON OBSERVACIONES" : data.resultado === "PENDIENTE" ? "PENDIENTE" : "NO APTO");
     const body = buildMailtoShortBody(data);
     const href = "mailto:" + data.emailDestino +
       "?subject=" + encodeURIComponent(subject) +
@@ -1682,11 +1749,7 @@
     }
 
     const data = collectData();
-    if (data.answers.some(a => a.answer === "no_conforme" || a.answer === "clear")) {
-      data.resultado = "NO APTO";
-    } else {
-      data.resultado = "APTO";
-    }
+    data.resultado = resultadoFromAnswers(data.answers, true);
 
     setSending(true);
     showStatus("info", "Generando informe PDF…");
@@ -1724,13 +1787,7 @@
 
   document.getElementById("btnDescargar").addEventListener("click", function () {
     const data = collectData();
-    if (data.answers.some(a => a.answer === "no_conforme" || a.answer === "clear")) {
-      data.resultado = "NO APTO";
-    } else if (data.answers.every(a => a.answer) && data.answers.length === TOTAL) {
-      data.resultado = "APTO";
-    } else {
-      data.resultado = "PENDIENTE";
-    }
+    data.resultado = resultadoFromAnswers(data.answers, data.answers.every(a => a.answer) && data.answers.length === TOTAL);
 
     setSending(true);
     showStatus("info", "Generando informe PDF…");
