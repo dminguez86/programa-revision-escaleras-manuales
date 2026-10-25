@@ -396,11 +396,6 @@
       box-shadow: 0 0 0 3px rgba(44, 106, 160, 0.3);
     }
 
-    .seg-control input:checked + label.opt-clear {
-      background: var(--gray-700);
-      border-color: var(--gray-700);
-      color: var(--white);
-    }
 
     .seg-control input:checked + label.opt-conforme {
       background: var(--green-700);
@@ -775,7 +770,6 @@
       vertical-align: middle;
     }
 
-    .legend .l-clear::before { background: var(--gray-700); }
     .legend .l-ok::before { background: var(--green-700); }
     .legend .l-ko::before { background: var(--red-700); }
     .legend .l-na::before { background: var(--amber-700); }
@@ -887,7 +881,6 @@
       </section>
 
       <div class="legend" aria-hidden="true">
-        <span class="l-clear">Defectuoso (no usable)</span>
         <span class="l-ok">Conforme</span>
         <span class="l-ko">No conforme</span>
         <span class="l-na">No aplica</span>
@@ -1037,14 +1030,12 @@
   ];
 
   const OPTS = [
-    { value: "clear", label: "Defectuoso", cls: "opt-clear" },
     { value: "conforme", label: "Conforme", cls: "opt-conforme" },
     { value: "no_conforme", label: "No conforme", cls: "opt-no-conforme" },
     { value: "na", label: "No aplica", cls: "opt-na" }
   ];
 
   const LABEL_MAP = {
-    clear: "Defectuoso",
     conforme: "Conforme",
     no_conforme: "No conforme",
     na: "No aplica"
@@ -1055,7 +1046,7 @@
   const isCritical = item => item.critical !== false;
   const CRIT_MAP = {};
   allItems.forEach(it => { CRIT_MAP[it.id] = isCritical(it); });
-  const isFail = a => a === "no_conforme" || a === "clear";
+  const isFail = a => a === "no_conforme";
   function resultadoFromAnswers(answers, complete) {
     const critFail = answers.some(a => isFail(a.answer) && CRIT_MAP[a.id]);
     const minorFail = answers.some(a => isFail(a.answer) && !CRIT_MAP[a.id]);
@@ -1086,7 +1077,7 @@
         `<div class="check-question"><strong>${item.id}</strong> — ${item.text}${isCritical(item) ? '<span class="crit-tag" title="Si falla, la escalera es NO APTA">Crítico</span>' : ""}${hint}</div>` +
         `<div class="seg-control" role="radiogroup" aria-label="${item.text}">${radios}</div>` +
         `<div class="item-obs" id="obs_wrap_${item.id}">` +
-          `<label for="obs_${item.id}">Observaciones (obligatorio si No conforme / Defectuoso) <span class="req">*</span></label>` +
+          `<label for="obs_${item.id}">Observaciones (obligatorio si No conforme) <span class="req">*</span></label>` +
           `<textarea id="obs_${item.id}" name="obs_${item.id}" placeholder="Describa el defecto o incidencia…"></textarea>` +
           `<span class="field-error" id="err-obs_${item.id}">Indique observaciones para este punto no conforme.</span>` +
           `<div class="item-evidencia">` +
@@ -1138,7 +1129,7 @@
       const a = getAnswer(item.id);
       if (a) {
         answered++;
-        if (a === "no_conforme" || a === "clear") {
+        if (a === "no_conforme") {
           hasFail = true;
           if (isCritical(item)) critFail = true;
         }
@@ -1205,7 +1196,7 @@
     allItems.forEach(item => {
       const a = getAnswer(item.id);
       const wrap = document.getElementById("obs_wrap_" + item.id);
-      if (a === "no_conforme" || a === "clear") {
+      if (a === "no_conforme") {
         wrap.classList.add("visible");
       } else {
         wrap.classList.remove("visible");
@@ -1321,7 +1312,7 @@
         itemEl.classList.add("error-item");
         showFieldError("item_" + item.id);
         if (!firstError) firstError = itemEl;
-      } else if (a === "no_conforme" || a === "clear") {
+      } else if (a === "no_conforme") {
         if (!getItemObs(item.id)) {
           showFieldError("obs_" + item.id);
           if (!firstError) firstError = document.getElementById("obs_" + item.id);
@@ -1416,7 +1407,7 @@
   function buildEmailHtml(data) {
     const rows = data.answers.map(a => {
       const color = a.answer === "conforme" ? "#4f8f25"
-        : (a.answer === "no_conforme" || a.answer === "clear") ? "#b91c1c"
+        : (a.answer === "no_conforme") ? "#b91c1c"
         : a.answer === "na" ? "#b45309" : "#6b7280";
       const obsPart = a.obs
         ? `<div style="margin-bottom:6px"><em>Obs.:</em> ${escapeHtml(a.obs)}</div>`
@@ -1432,7 +1423,7 @@
         : "";
       return `<tr>
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-size:14px">${escapeHtml(a.id)} — ${escapeHtml(a.text)}</td>
-        <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${color};white-space:nowrap">${escapeHtml(a.answerLabel)}${(a.answer === "no_conforme" || a.answer === "clear") ? `<div style="font-size:11px;font-weight:700;color:${a.critical === false ? "#b45309" : "#b91c1c"}">${a.critical === false ? "No crítico" : "CRÍTICO"}</div>` : ""}</td>
+        <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${color};white-space:nowrap">${escapeHtml(a.answerLabel)}${(a.answer === "no_conforme") ? `<div style="font-size:11px;font-weight:700;color:${a.critical === false ? "#b45309" : "#b91c1c"}">${a.critical === false ? "No crítico" : "CRÍTICO"}</div>` : ""}</td>
       </tr>${detailRow}`;
     }).join("");
 
@@ -1500,14 +1491,13 @@
   }
 
   function countAnswers(data) {
-    let conforme = 0, noConforme = 0, clear = 0, na = 0;
+    let conforme = 0, noConforme = 0, na = 0;
     data.answers.forEach(a => {
       if (a.answer === "conforme") conforme++;
       else if (a.answer === "no_conforme") noConforme++;
-      else if (a.answer === "clear") clear++;
       else if (a.answer === "na") na++;
     });
-    return { conforme, noConforme, clear, na };
+    return { conforme, noConforme, na };
   }
 
   function buildMailtoShortBody(data) {
@@ -1527,13 +1517,13 @@
       "Generado: " + data.timestampLocal,
       "",
       "Conteo checklist: " + c.conforme + " conforme, " +
-        (c.noConforme + c.clear) + " no conforme/defectuoso, " + c.na + " N/A (total " + data.answers.length + ").",
+        c.noConforme + " no conforme, " + c.na + " N/A (total " + data.answers.length + ").",
       ""
     ];
     if (data.obsGenerales) {
       lines.push("Observaciones generales:", data.obsGenerales, "");
     }
-    const fallos = data.answers.filter(a => a.answer === "no_conforme" || a.answer === "clear");
+    const fallos = data.answers.filter(a => a.answer === "no_conforme");
     if (fallos.length) {
       lines.push("Puntos con incidencia:");
       fallos.forEach(a => lines.push("- " + a.id + " (" + (a.critical === false ? "no crítico" : "CRÍTICO") + "): " + a.answerLabel + (a.obs ? " - " + a.obs : "")));
