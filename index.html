@@ -1421,10 +1421,10 @@
       const detailRow = (obsPart || fotoPart)
         ? `<tr><td colspan="2" style="padding:4px 8px 12px 24px;font-size:13px;color:#3d4450;background:#f9fafb;border-bottom:1px solid #e5e7eb">${obsPart}${fotoPart}</td></tr>`
         : "";
-      return `<tr>
+      return `<tbody class="pdf-row" style="page-break-inside:avoid;break-inside:avoid"><tr>
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-size:14px">${escapeHtml(a.id)} — ${escapeHtml(a.text)}</td>
         <td style="padding:8px;border-bottom:1px solid #e5e7eb;font-weight:700;color:${color};white-space:nowrap">${escapeHtml(a.answerLabel)}${(a.answer === "no_conforme") ? `<div style="font-size:11px;font-weight:700;color:${a.critical === false ? "#b45309" : "#b91c1c"}">${a.critical === false ? "No crítico" : "CRÍTICO"}</div>` : ""}</td>
-      </tr>${detailRow}`;
+      </tr>${detailRow}</tbody>`;
     }).join("");
 
     const resColor = data.resultado === "APTO" ? "#4f8f25" : (data.resultado === "PENDIENTE" || data.resultado === "APTO CON OBSERVACIONES") ? "#b45309" : "#b91c1c";
@@ -1462,9 +1462,8 @@
       <img src="${data.fotoDataUrl}" alt="Foto de la escalera ${escapeHtml(data.idEscalera)}" style="display:block;max-width:100%;max-height:260px;width:auto;height:auto;object-fit:contain;margin:0 auto;border-radius:6px;border:1px solid #e5e7eb;page-break-inside:avoid;break-inside:avoid" />
       <p style="margin:8px 0 0;font-size:13px;color:#6b7280">Foto de la escalera — ${escapeHtml(data.fecha)} / ${escapeHtml(data.idEscalera)}</p>
     </div>` : ""}
-    <h2 style="font-size:16px;color:#247d9d;border-bottom:2px solid #dff2f8;padding-bottom:6px">Checklist</h2>
-    <table style="width:100%;border-collapse:collapse">${rows}</table>
-    ${data.obsGenerales ? `<h2 style="font-size:16px;color:#247d9d;margin-top:20px">Observaciones generales</h2><p style="font-size:14px;white-space:pre-wrap">${escapeHtml(data.obsGenerales)}</p>` : ""}
+    <table style="width:100%;border-collapse:collapse"><tbody class="pdf-row" style="page-break-inside:avoid;break-inside:avoid"><tr><td colspan="2" style="padding:0"><h2 style="font-size:16px;color:#247d9d;border-bottom:2px solid #dff2f8;padding-bottom:6px;margin:16px 0 0">Checklist</h2></td></tr></tbody>${rows}</table>
+    ${data.obsGenerales ? `<div class="pdf-obs-gen" style="page-break-inside:avoid;break-inside:avoid"><h2 style="font-size:16px;color:#247d9d;margin-top:20px">Observaciones generales</h2><p style="font-size:14px;white-space:pre-wrap">${escapeHtml(data.obsGenerales)}</p></div>` : ""}
     <div class="pdf-firma" style="margin-top:24px;padding:14px;border:1px solid #e5e7eb;border-radius:8px;background:#f9fafb;page-break-inside:avoid;break-inside:avoid">
       <h2 style="font-size:16px;color:#247d9d;margin:0 0 8px">Firma del revisor/a</h2>
       <p style="margin:0 0 10px;font-size:13px;color:#6b7280">${escapeHtml(data.revisor)} · ${escapeHtml(data.fecha)}</p>
@@ -1679,7 +1678,7 @@
           windowWidth: 720
         },
         jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
-        pagebreak: { mode: ["avoid-all", "css", "legacy"], avoid: [".pdf-foto", ".pdf-firma", ".pdf-evidencia", "img"] }
+        pagebreak: { mode: ["css", "legacy"], avoid: [".pdf-row", ".pdf-foto", ".pdf-firma", ".pdf-evidencia", ".pdf-obs-gen"] }
       };
 
       return waitForImages(container).then(function () {
