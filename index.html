@@ -69,12 +69,40 @@
       margin: 0 auto;
     }
 
+    .header-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.75rem 1rem;
+      margin-bottom: 0.75rem;
+    }
+
     .brand-logo {
       display: block;
       width: auto;
       max-height: 62px;
+      max-width: min(220px, calc(100% - 10.5rem));
       object-fit: contain;
-      margin-bottom: 0.75rem;
+      margin-bottom: 0;
+      flex: 0 1 auto;
+    }
+
+    .btn-ejemplo {
+      flex: 0 0 auto;
+      background: rgba(122, 193, 67, 0.18);
+      color: var(--white);
+      border: 1.5px solid rgba(122, 193, 67, 0.9);
+      min-height: var(--touch);
+      padding: 0.5rem 0.85rem;
+      font-size: 0.85rem;
+      font-weight: 650;
+      white-space: nowrap;
+      letter-spacing: 0.01em;
+      box-shadow: none;
+    }
+
+    .btn-ejemplo:hover:not(:disabled) {
+      background: rgba(122, 193, 67, 0.34);
     }
 
     .brand-rule {
@@ -255,6 +283,14 @@
     @media (max-width: 600px) {
       .form-grid { grid-template-columns: 1fr; }
       .app-header h1 { font-size: 1.25rem; }
+      .brand-logo { max-height: 52px; }
+      .btn-ejemplo { font-size: 0.78rem; padding: 0.45rem 0.7rem; }
+    }
+
+    @media (max-width: 380px) {
+      .header-top { flex-wrap: wrap; }
+      .brand-logo { max-width: 100%; }
+      .btn-ejemplo { width: 100%; }
     }
 
     .form-group {
@@ -778,7 +814,7 @@
     @media print {
       body { background: white; font-size: 11pt; }
       .app-header { background: var(--blue-900) !important; -webkit-print-color-adjust: exact; print-color-adjust: exact; box-shadow: none; }
-      .sticky-bar, .actions, .status-msg, .legend, .badge-prl { display: none !important; }
+      .sticky-bar, .actions, .status-msg, .legend, .badge-prl, .btn-ejemplo { display: none !important; }
       .card { box-shadow: none; border: 1px solid #ccc; break-inside: avoid; page-break-inside: avoid; }
       .seg-control label { border: 1px solid #999; min-height: 28px; font-size: 8pt; }
       .seg-control input:checked + label {
@@ -793,7 +829,10 @@
 <body>
   <header class="app-header">
     <div class="app-header-inner">
-      <img src="logo-previjob.png" alt="PREVIJOB — Servicio de prevención" class="brand-logo" />
+      <div class="header-top">
+        <img src="logo-previjob.png" alt="PREVIJOB — Servicio de prevención" class="brand-logo" />
+        <button type="button" class="btn btn-ejemplo" id="btnEjemplo" title="Rellena el formulario con datos de demostración para ver cómo queda el informe">Cumplimentar ejemplo</button>
+      </div>
       <div class="brand-rule" aria-hidden="true"></div>
       <h1>Revisión de escaleras manuales</h1>
       <p class="subtitle">Inspección previa al uso / periódica — RD 2177/2004</p>
@@ -2136,6 +2175,250 @@
     clearFoto();
     showStatus("info", "Foto eliminada. Puede añadir otra si lo desea.");
   });
+
+  function formHasUserData() {
+    const ids = ["revisor", "idEscalera", "tipo", "ubicacion", "emailDestino", "obsGenerales"];
+    if (ids.some(function (id) {
+      return (document.getElementById(id).value || "").trim();
+    })) return true;
+    if (allItems.some(function (item) {
+      return getAnswer(item.id) || getItemObs(item.id);
+    })) return true;
+    if (fotoDataUrl || firmaHasInk) return true;
+    if (Object.keys(itemEvidencePhotos).length) return true;
+    return false;
+  }
+
+  function makeEjemploLadderPhoto() {
+    const w = 720, h = 540;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext("2d");
+    const g = ctx.createLinearGradient(0, 0, 0, h);
+    g.addColorStop(0, "#d7eaf2");
+    g.addColorStop(1, "#f4f7f5");
+    ctx.fillStyle = g;
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "#d4d8cc";
+    ctx.fillRect(0, h - 80, w, 80);
+    ctx.fillStyle = "#c4c8bc";
+    ctx.fillRect(0, h - 80, w, 6);
+    ctx.fillStyle = "rgba(13,13,13,0.72)";
+    ctx.fillRect(0, 0, w, 58);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 28px 'Segoe UI', Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText("Foto de ejemplo", w / 2, 38);
+
+    const top = 100, bottom = 450, midX = 360, spread = 160;
+    ctx.strokeStyle = "#247d9d";
+    ctx.lineWidth = 14;
+    ctx.lineCap = "round";
+    ctx.lineJoin = "round";
+    ctx.beginPath();
+    ctx.moveTo(midX - 30, top);
+    ctx.lineTo(midX - spread, bottom);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(midX + 30, top);
+    ctx.lineTo(midX + spread, bottom);
+    ctx.stroke();
+    ctx.strokeStyle = "#163f50";
+    ctx.lineWidth = 10;
+    ctx.beginPath();
+    ctx.moveTo(midX - 20, top + 10);
+    ctx.lineTo(midX - spread + 70, bottom);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(midX + 20, top + 10);
+    ctx.lineTo(midX + spread - 70, bottom);
+    ctx.stroke();
+    ctx.strokeStyle = "#7ac143";
+    ctx.lineWidth = 10;
+    for (let i = 1; i <= 6; i++) {
+      const t = i / 7;
+      const y = top + (bottom - top) * t;
+      const half = 20 + (spread - 30) * t;
+      ctx.beginPath();
+      ctx.moveTo(midX - half, y);
+      ctx.lineTo(midX + half, y);
+      ctx.stroke();
+    }
+    ctx.fillStyle = "#0d0d0d";
+    ctx.beginPath();
+    ctx.arc(midX, top + 8, 12, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#1a1d23";
+    [[midX - spread, bottom], [midX + spread, bottom], [midX - spread + 70, bottom], [midX + spread - 70, bottom]].forEach(function (p) {
+      ctx.beginPath();
+      ctx.ellipse(p[0], p[1] + 4, 16, 7, 0, 0, Math.PI * 2);
+      ctx.fill();
+    });
+    ctx.fillStyle = "#163f50";
+    ctx.font = "16px 'Segoe UI', Arial, sans-serif";
+    ctx.fillText("ESC-001 · Escalera de tijera · Almacén principal", w / 2, h - 28);
+    return c.toDataURL("image/jpeg", 0.86);
+  }
+
+  function makeEjemploEvidencePhoto() {
+    const w = 640, h = 400;
+    const c = document.createElement("canvas");
+    c.width = w;
+    c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#ece7dc";
+    ctx.fillRect(0, 0, w, h);
+    ctx.fillStyle = "rgba(13,13,13,0.75)";
+    ctx.fillRect(0, 0, w, 48);
+    ctx.fillStyle = "#ffffff";
+    ctx.font = "bold 20px 'Segoe UI', Arial, sans-serif";
+    ctx.textAlign = "center";
+    ctx.fillText("Evidencia 3.3 — Foto de ejemplo", w / 2, 32);
+    // close-up rungs
+    ctx.strokeStyle = "#247d9d";
+    ctx.lineWidth = 22;
+    ctx.lineCap = "round";
+    for (let i = 0; i < 4; i++) {
+      const y = 110 + i * 70;
+      ctx.beginPath();
+      ctx.moveTo(80, y);
+      ctx.lineTo(560, y);
+      ctx.stroke();
+    }
+    // rails
+    ctx.strokeStyle = "#163f50";
+    ctx.lineWidth = 18;
+    ctx.beginPath();
+    ctx.moveTo(90, 80);
+    ctx.lineTo(70, 380);
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(550, 80);
+    ctx.lineTo(570, 380);
+    ctx.stroke();
+    // grease stains on lower rungs
+    ctx.fillStyle = "rgba(80, 60, 20, 0.55)";
+    ctx.beginPath();
+    ctx.ellipse(280, 250, 70, 16, -0.15, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.beginPath();
+    ctx.ellipse(360, 320, 90, 18, 0.1, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "rgba(40, 30, 10, 0.45)";
+    ctx.beginPath();
+    ctx.ellipse(330, 325, 40, 10, 0.2, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = "#7f1d1d";
+    ctx.font = "bold 16px 'Segoe UI', Arial, sans-serif";
+    ctx.fillText("Suciedad / restos de grasa en peldaños", w / 2, 380);
+    return c.toDataURL("image/jpeg", 0.86);
+  }
+
+  function drawEjemploFirma() {
+    if (!firmaCanvas || !firmaCtx) return;
+    clearFirma();
+    const rect = firmaCanvas.getBoundingClientRect();
+    const w = Math.max(280, rect.width || 640);
+    const h = 160;
+    const sx = w / 640;
+    const sy = h / 160;
+    firmaCtx.save();
+    firmaCtx.lineCap = "round";
+    firmaCtx.lineJoin = "round";
+    firmaCtx.strokeStyle = "#111827";
+    firmaCtx.lineWidth = 2.4;
+    function strokePts(pts) {
+      if (!pts.length) return;
+      firmaCtx.beginPath();
+      firmaCtx.moveTo(pts[0][0] * sx, pts[0][1] * sy);
+      for (let i = 1; i < pts.length - 1; i++) {
+        const x = pts[i][0] * sx;
+        const y = pts[i][1] * sy;
+        const nx = pts[i + 1][0] * sx;
+        const ny = pts[i + 1][1] * sy;
+        firmaCtx.quadraticCurveTo(x, y, (x + nx) / 2, (y + ny) / 2);
+      }
+      const last = pts[pts.length - 1];
+      firmaCtx.lineTo(last[0] * sx, last[1] * sy);
+      firmaCtx.stroke();
+    }
+    // Cursive-like "T. PRL Ejemplo" flourish
+    strokePts([
+      [70, 110], [90, 50], [110, 120], [140, 70], [160, 115],
+      [190, 55], [210, 100], [240, 65], [270, 118], [310, 48],
+      [340, 112], [380, 70], [420, 108], [460, 62], [510, 100],
+      [545, 78]
+    ]);
+    strokePts([
+      [80, 95], [150, 95]
+    ]);
+    strokePts([
+      [300, 130], [520, 128]
+    ]);
+    firmaCtx.restore();
+    markFirmaInk();
+  }
+
+  function fillEjemplo() {
+    if (formHasUserData()) {
+      if (!confirm("El formulario ya tiene datos. ¿Desea sustituirlos por un ejemplo de demostración?")) return;
+    }
+
+    document.querySelectorAll(".check-item.error-item").forEach(function (el) { el.classList.remove("error-item"); });
+    document.querySelectorAll(".field-error.visible").forEach(function (el) { el.classList.remove("visible"); });
+    document.querySelectorAll("input.error, select.error, textarea.error").forEach(function (el) { el.classList.remove("error"); });
+
+    const d = new Date();
+    document.getElementById("fecha").value =
+      d.getFullYear() + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + String(d.getDate()).padStart(2, "0");
+    document.getElementById("revisor").value = "Técnico PRL Ejemplo";
+    document.getElementById("idEscalera").value = "ESC-001";
+    document.getElementById("tipo").value = "De tijera / doble";
+    document.getElementById("ubicacion").value = "Almacén principal";
+    document.getElementById("emailDestino").value = "ejemplo@empresa.com";
+    document.getElementById("obsGenerales").value =
+      "Revisión de ejemplo con fines demostrativos. La escalera es apta para el uso: queda pendiente reponer la identificación interna de la empresa y limpiar los peldaños antes del próximo uso.";
+
+    const naItems = { "2.4": true, "5.3": true, "5.5": true };
+    const noConforme = {
+      "1.2": "La identificación interna de la empresa está desgastada y apenas se lee el código.",
+      "3.3": "Los peldaños presentan suciedad y restos de grasa en la zona inferior. Precisan limpieza antes del próximo uso."
+    };
+
+    allItems.forEach(function (item) {
+      let val = "conforme";
+      if (naItems[item.id]) val = "na";
+      else if (noConforme[item.id]) val = "no_conforme";
+      const radio = document.getElementById("item_" + item.id + "_" + val);
+      if (radio) radio.checked = true;
+    });
+
+    updateUI();
+
+    Object.keys(noConforme).forEach(function (id) {
+      const ta = document.getElementById("obs_" + id);
+      if (ta) ta.value = noConforme[id];
+      clearFieldError("obs_" + id);
+    });
+
+    ["revisor", "fecha", "idEscalera", "tipo", "emailDestino"].forEach(clearFieldError);
+
+    const foto = makeEjemploLadderPhoto();
+    fotoDataUrl = foto;
+    showFotoPreview(foto, "Foto de ejemplo (ilustración). Se incluirá en el informe PDF.");
+
+    const ev = makeEjemploEvidencePhoto();
+    showItemEvidence("3.3", ev, "Evidencia de ejemplo del punto 3.3. Se incluirá en el PDF.");
+
+    drawEjemploFirma();
+
+    showStatus("info", "Formulario rellenado con un ejemplo de demostración. Pulse «Descargar informe (PDF)» para ver cómo queda el informe.");
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
+
+  document.getElementById("btnEjemplo").addEventListener("click", fillEjemplo);
 
   // Init
   document.getElementById("progressText").textContent = `0 / ${TOTAL}`;
