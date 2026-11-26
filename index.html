@@ -284,13 +284,14 @@
       .form-grid { grid-template-columns: 1fr; }
       .app-header h1 { font-size: 1.25rem; }
       .brand-logo { max-height: 52px; }
-      .btn-ejemplo { font-size: 0.78rem; padding: 0.45rem 0.7rem; }
+      .header-top .btn-ejemplo { font-size: 0.78rem; padding: 0.4rem 0.6rem; white-space: normal; max-width: 42%; line-height: 1.2; text-align: center; flex: 0 1 auto; }
+      .brand-logo { max-width: 55%; }
     }
 
     @media (max-width: 380px) {
       .header-top { flex-wrap: wrap; }
       .brand-logo { max-width: 100%; }
-      .btn-ejemplo { width: 100%; }
+      .header-top .btn-ejemplo { width: 100%; max-width: 100%; }
     }
 
     .form-group {
