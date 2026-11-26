@@ -911,9 +911,9 @@
               </div>
             </div>
           </div>
-          <div class="form-group full">
+          <div class="form-group full" style="display:none">
             <label for="emailDestino">Correo electrónico de destino del informe <span class="req">*</span></label>
-            <input type="email" id="emailDestino" name="emailDestino" required autocomplete="email" placeholder="responsable.prl@empresa.es" />
+            <input type="email" id="emailDestino" name="emailDestino" autocomplete="email" placeholder="responsable.prl@empresa.es" />
             <span class="field-hint" style="font-size:0.8rem;color:var(--gray-500);margin-top:0.15rem">Se abrirá la aplicación de correo del dispositivo; adjunte el PDF descargado al mensaje.</span>
             <span class="field-error" id="err-emailDestino">Indique un correo electrónico válido de destino.</span>
           </div>
@@ -965,23 +965,19 @@
               <button type="button" class="btn btn-ghost" id="btnBorrarFirma">Borrar firma</button>
               <span class="firma-hint" id="firmaStatus">Sin firmar</span>
             </div>
-            <span class="field-error" id="err-firma">Firme en el recuadro antes de enviar o descargar el informe.</span>
+            <span class="field-error" id="err-firma">Firme en el recuadro antes de descargar el informe.</span>
           </div>
         </div>
       </section>
 
       <section class="card" id="sec-envio">
-        <h2><span class="section-num">✉</span> Envío del informe</h2>
+        <h2><span class="section-num">⬇</span> Descarga del informe</h2>
         <p style="margin:0 0 1rem;font-size:0.9rem;color:var(--gray-500)">
-          Al pulsar <strong>Enviar informe</strong> se generará y descargará un <strong>PDF</strong> del informe y se abrirá la aplicación de correo del dispositivo con el destinatario, el asunto y un resumen. Debe <strong>adjuntar el PDF descargado</strong> al mensaje y pulsar <strong>Enviar</strong> en esa aplicación.
-          Si ha añadido una foto, está incluida en el PDF. La firma del revisor también. En móviles compatibles también podrá compartir el PDF con otras apps.
-          La generación del PDF necesita conexión a Internet (biblioteca desde CDN); use la app en HTTPS (p. ej. Render) o con red disponible.
+          Al pulsar <strong>Descargar informe (PDF)</strong> se generará y descargará un <strong>PDF</strong> con todos los datos, fotos y la firma del revisor/a. Puede guardarlo, imprimirlo o enviarlo por correo.
+          La generación del PDF necesita conexión a Internet.
         </p>
         <div class="actions">
-          <button type="submit" class="btn btn-primary" id="btnEnviar">
-            <span id="btnEnviarText">Enviar informe</span>
-          </button>
-          <button type="button" class="btn btn-secondary" id="btnDescargar">Descargar informe (PDF)</button>
+          <button type="button" class="btn btn-primary" id="btnDescargar">Descargar informe (PDF)</button>
           <button type="button" class="btn btn-ghost" id="btnReset" style="display:none">Nueva revisión</button>
         </div>
         <div class="status-msg" id="statusMsg" role="status"></div>
@@ -1343,7 +1339,7 @@
     if (!tipo.value) mark(tipo, "tipo");
 
     const email = document.getElementById("emailDestino");
-    if (!email.value.trim() || !isValidEmail(email.value.trim())) mark(email, "emailDestino");
+    if (email.value.trim() && !isValidEmail(email.value.trim())) mark(email, "emailDestino");
 
     allItems.forEach(item => {
       const a = getAnswer(item.id);
@@ -1490,7 +1486,6 @@
       <tr><td style="padding:6px 0;color:#6b7280">Identificación escalera</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.idEscalera)}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Tipo</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.tipo)}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Ubicación / centro</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.ubicacion || "—")}</td></tr>
-      <tr><td style="padding:6px 0;color:#6b7280">Email destino</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.emailDestino || "—")}</td></tr>
       <tr><td style="padding:6px 0;color:#6b7280">Generado</td><td style="padding:6px 0;font-weight:600">${escapeHtml(data.timestampLocal)} (Europe/Madrid)</td></tr>
     </table>
     <div style="background:${resBg};color:${resColor};border:2px solid ${resColor};padding:12px;text-align:center;font-weight:800;font-size:18px;border-radius:8px;margin-bottom:16px">
@@ -1754,17 +1749,16 @@
   }
 
   function setSending(busy) {
-    const btn = document.getElementById("btnEnviar");
-    const txt = document.getElementById("btnEnviarText");
+    const btn = document.getElementById("btnDescargar");
     btn.disabled = busy;
-    document.getElementById("btnDescargar").disabled = busy;
-    txt.innerHTML = busy
+    btn.innerHTML = busy
       ? '<span class="spinner" aria-hidden="true"></span> Generando PDF…'
-      : "Enviar informe";
+      : "Descargar informe (PDF)";
   }
 
   document.getElementById("revisionForm").addEventListener("submit", function (e) {
     e.preventDefault();
+    return; // Envío por correo desactivado: solo descarga del PDF
     document.querySelectorAll(".check-item.error-item").forEach(el => el.classList.remove("error-item"));
 
     const firstError = validate();
